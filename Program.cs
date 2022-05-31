@@ -14,7 +14,16 @@ app.Configure(x =>
 		.WithExample(new[] {"build", "test.scrs", "--output", "project.sb3"});
 });
 
-app.Run(args);
+try
+{
+	app.Run(args);
+}
+catch (CommandParseException exception)
+{
+	AnsiConsole.MarkupLine($"[bold red]{exception.Message}[/]");
+	AnsiConsole.MarkupLine("Run ScratchScript --help for usage.");
+	Environment.Exit(1);
+}
 
 internal class BuildCommand : Command<BuildCommand.BuildCommandSettings>
 {
