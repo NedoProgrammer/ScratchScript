@@ -35,7 +35,7 @@ public static class DiagnosticReporter
 		AnsiConsole.WriteLine($" --> {project.FileName}:{line}:{column + 1}");
 		var lineFormatted = $"{line} | ";
 		AnsiConsole.WriteLine($"{lineFormatted}{fileData[line - 1].Trim()}");
-		var underline = new string(' ', column + lineFormatted.Length - 1) + new string('~', text.Length);
+		var underline = new string(' ', column + lineFormatted.Length) + new string('~', text.Length);
 		AnsiConsole.MarkupLine($"[{color}]{underline}[/]");
 		if (Strings.Notes.ContainsKey(id))
 			AnsiConsole.WriteLine("note: " + Strings.Notes[id]);

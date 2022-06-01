@@ -2,9 +2,9 @@
 
 public class Mutation
 {
-	public List<object> argumentdefaults = new();
-	public List<string> argumentids = new();
-	public List<string> argumentnames = new();
+	public string argumentdefaults;
+	public string argumentids;
+	public string argumentnames;
 	public object[] children = Array.Empty<object>();
 	public string proccode;
 	public string tagName = "mutation";

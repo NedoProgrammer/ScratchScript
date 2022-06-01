@@ -14,5 +14,6 @@ public class Block
 	public bool shadow;
 	public int? x;
 	public int? y;
+	public Mutation? mutation;
 	public bool topLevel => parent == null;
 }

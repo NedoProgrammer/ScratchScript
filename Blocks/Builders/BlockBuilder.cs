@@ -13,6 +13,7 @@ public class BlockBuilder
 	private bool _shadow;
 	private int? _x = 0;
 	private int? _y = 0;
+	private Mutation? _mutation;
 
 	public BlockBuilder(Block block)
 	{
@@ -24,6 +25,7 @@ public class BlockBuilder
 		_shadow = block.shadow;
 		_inputs = block.inputs;
 		_fields = block.fields;
+		_mutation = block.mutation;
 	}
 
 	public BlockBuilder()
@@ -33,6 +35,14 @@ public class BlockBuilder
 	public BlockBuilder WithId(string id)
 	{
 		_id = id;
+		return this;
+	}
+	
+	public string Id => _id;
+
+	public BlockBuilder WithMutation(Mutation mutation)
+	{
+		_mutation = mutation;
 		return this;
 	}
 
@@ -85,7 +95,8 @@ public class BlockBuilder
 			fields = _fields,
 			x = _x,
 			y = _y,
-			shadow = _shadow
+			shadow = _shadow,
+			mutation = _mutation
 		}.WithPurposeId(_id);
 		return block;
 	}

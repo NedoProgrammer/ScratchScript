@@ -5,7 +5,7 @@ namespace ScratchScript.Blocks.Builders;
 public class FieldBuilder
 {
 	private string _name;
-	private List<object> _objects = new();
+	private List<object?> _objects = new();
 
 	public FieldBuilder WithName(string name)
 	{
@@ -19,12 +19,18 @@ public class FieldBuilder
 		{
 			variable.Name,
 			variable.Id
-		};
+		}!;
+		return this;
+	}
+
+	public FieldBuilder WithObjects(params object?[] objects)
+	{
+		_objects = objects.ToList();
 		return this;
 	}
 
 	public KeyValuePair<string, List<object>> Build()
 	{
-		return new(_name, _objects);
+		return new(_name, _objects!);
 	}
 }

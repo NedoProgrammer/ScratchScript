@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
@@ -8,6 +9,7 @@ using ScratchScript.Extensions;
 using ScratchScript.Types;
 using ScratchScript.Wrapper;
 using Serilog;
+using Serilog.Configuration;
 
 namespace ScratchScript.Core;
 
@@ -658,5 +660,29 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	public override object? VisitBlock(ScratchScriptParser.BlockContext context)
 	{
 		return context.children.Select(Visit).ToList();
+	}
+
+	public override object? VisitFunctionDeclarationStatement(ScratchScriptParser.FunctionDeclarationStatementContext context)
+	{
+		var target = ProjectCompiler.Current.CurrentTarget;
+		Log.Debug("Found function declaration");
+		var name = context.Identifier(0).GetText();
+		if (target.Variables.ContainsKey(name))
+		{
+			DiagnosticReporter.ReportError(context.Identifier(0).Symbol, "E12", -1, -1, "", name);
+			return null;
+		}
+
+		if (target.Methods.ContainsKey(name))
+		{
+			DiagnosticReporter.ReportError(context.Identifier(0).Symbol, "E13");
+			return null;
+		}
+
+		var arguments = context.Identifier().Skip(1).ToList();
+		foreach(var arg in arguments)
+			Log.Information(arg.GetText());
+
+		return null;
 	}
 }

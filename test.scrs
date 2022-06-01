@@ -1,14 +1,5 @@
-﻿var a = 5.4f;
-var b = a + 4.6f;
-var c = "";
-if b == 10f
+﻿//should error
+var a = 42;
+function a(x, y)
 {
-	c = "hooray!";
-	//now lets get a warning
-	var d = 1 / 0;
-	c = "uh oh!";
-}
-else
-{
-	c = "huh?";
 }

@@ -65,7 +65,8 @@ internal class BuildCommand : Command<BuildCommand.BuildCommandSettings>
 		compiler.Compile();
 		compiler.Finish();
 
-		AnsiConsole.MarkupLine("[green]Done![/]");
+		if(settings.LogToConsole)
+			AnsiConsole.MarkupLine("[green]Done![/]");
 		return 0;
 	}
 

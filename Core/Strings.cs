@@ -15,7 +15,9 @@ public class Strings
 		{"E8", "Cannot assign a value of type \"{0}\" to a variable of type \"{1}\"."},
 		{"E9", "Unexpected identifier \"{0}\"."},
 		{"E10", "Syntax error: {0}"},
-		{"E11", "ICE: type mismatch, expected \"{0}\", received \"{1}\"."}
+		{"E11", "ICE: type mismatch, expected \"{0}\", received \"{1}\"."},
+		{"E12", "Cannot define method with name \"{0}\"; a variable with such name already exists."},
+		{"E13", "Method with name \"{0}\" is already defined."}
 	};
 
 	public static Dictionary<string, string> Notes = new()

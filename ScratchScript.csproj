@@ -12,14 +12,14 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Antlr4.Runtime" Version="4.6.6"/>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.2-beta1"/>
-        <PackageReference Include="RandomUserAgent" Version="1.1.2"/>
-        <PackageReference Include="Serilog.Sinks.Console" Version="4.0.2-dev-00890"/>
-        <PackageReference Include="Serilog.Sinks.File" Version="5.0.1-dev-00947"/>
-        <PackageReference Include="SixLabors.ImageSharp" Version="2.1.1"/>
-        <PackageReference Include="Spectre.Console" Version="0.44.1-preview.0.17"/>
-        <PackageReference Include="Spectre.Console.Cli" Version="0.44.1-preview.0.17"/>
+        <PackageReference Include="Antlr4.Runtime" Version="4.6.6" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.2-beta1" />
+        <PackageReference Include="RandomUserAgent" Version="1.1.2" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="4.0.2-dev-00890" />
+        <PackageReference Include="Serilog.Sinks.File" Version="5.0.1-dev-00947" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="2.1.1" />
+        <PackageReference Include="Spectre.Console" Version="0.44.1-preview.0.17" />
+        <PackageReference Include="Spectre.Console.Cli" Version="0.44.1-preview.0.17" />
     </ItemGroup>
 
     <ItemGroup>

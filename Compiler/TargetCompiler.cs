@@ -10,34 +10,9 @@ public class TargetCompiler
 {
 	public string? PendingComment;
 	public Dictionary<string, ScratchVariable> Variables = new();
+	public Dictionary<string, ScratchCustomBlock> Methods = new();
 	public Target WrappedTarget = new();
-
-	/*private void SetNextPosition(ref Block block)
-	{
-		if (WrappedTarget.blocks.Count == 0)
-		{
-			block.x = 0;
-			block.y = 0;
-		}
-		else
-		{
-			if (block.topLevel && !block.shadow)
-			{
-				var last = WrappedTarget.blocks.Last(x => x.Value.topLevel).Value;
-				if (last.x + 500 > 3000)
-				{
-					block.x = 0;
-					block.y = last.y + 1000;
-				}
-				else block.x = last.x + 500;
-			}
-			else if(!block.topLevel && !block.shadow)
-			{
-				var last = WrappedTarget.blocks.Last(x => !x.Value.topLevel && !x.Value.shadow).Value;
-				block.y = last.y + 50;
-			}
-		}
-	}*/
+	
 
 	public TargetCompiler()
 	{
