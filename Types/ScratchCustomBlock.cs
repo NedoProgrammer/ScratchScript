@@ -11,6 +11,7 @@ public class ScratchCustomBlock
 	public Type ReturnType;
 	public string? ReturnVariable;
 	public Dictionary<string, Block> Reporters = new();
+	public Dictionary<string, string> ArgumentAliases = new();
 	public Dictionary<string, string> ArgumentIds = new();
 	public Dictionary<string, Type> ArgumentTypes = new();
 }

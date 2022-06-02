@@ -17,12 +17,15 @@ public enum ParameterType
 public class CustomBlockBuilder
 {
 	private string _name;
+
+	public string Name => _name;
+
 	private string _id;
 	private Type? _returnType;
+	public string ReturnVariable;
 	private Dictionary<string, Block> _reporters = new();
 	public Type? ReturnType => _returnType;
-	public Dictionary<string, Type> Arguments => _arguments;
-	private Dictionary<string, Type> _arguments = new();
+	public Dictionary<string, Type> Arguments { get; } = new();
 
 	public CustomBlockBuilder WithName(string name)
 	{
@@ -44,7 +47,7 @@ public class CustomBlockBuilder
 
 	public CustomBlockBuilder WithArgument(string name, Type type)
 	{
-		_arguments[name] = type;
+		Arguments[name] = type;
 		_reporters[name] = type == typeof(bool)
 			? CustomBlocks.ReporterBoolean(name)
 			: CustomBlocks.ReporterStringNumber(name);
@@ -65,7 +68,7 @@ public class CustomBlockBuilder
 		var argumentDefaults = "[";
 		var argumentNames = "[";
 		
-		foreach (var pair in _arguments)
+		foreach (var pair in Arguments)
 		{
 			block.ArgumentTypes[pair.Key] = pair.Value;
 			block.ArgumentIds[pair.Key] = BlockExtensions.RandomId($"FunctionArgument_{_name}");
@@ -88,6 +91,7 @@ public class CustomBlockBuilder
 		mutation.argumentdefaults = argumentDefaults;
 		mutation.argumentnames = argumentNames;
 
+		block.ReturnVariable = ReturnVariable;
 		block.ReturnType = _returnType;
 		block.SharedMutation = mutation;
 		block.Prototype = target.CreateBlock(CustomBlocks.Prototype(block), true, true);

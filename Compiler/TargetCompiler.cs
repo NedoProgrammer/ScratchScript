@@ -10,7 +10,7 @@ public class TargetCompiler
 {
 	public string? PendingComment;
 	public Dictionary<string, ScratchVariable> Variables = new();
-	public Dictionary<string, ScratchCustomBlock> Methods = new();
+	public Dictionary<string, ScratchCustomBlock> Functions = new();
 	public Target WrappedTarget = new();
 	
 

@@ -10,15 +10,13 @@ statement: (assignmentStatement | functionCallStatement | variableDeclarationSta
 assignmentStatement: Identifier assignmentOperators expression;
 variableDeclarationStatement: VariableDeclare Identifier Assignment expression;
 functionCallStatement: Identifier LeftParen (expression (Comma expression)*?) RightParen;
-functionDeclarationStatement: FunctionDeclare Identifier LeftParen (functionArgumentDeclaration (Comma functionArgumentDeclaration)*?)? RightParen functionReturnType? block; 
+functionDeclarationStatement: FunctionDeclare Identifier LeftParen (Identifier (Comma Identifier)*?)? RightParen block; 
 ifStatement: If expression block (Else elseIfStatement)?;
 whileStatement: While expression block;
 elseIfStatement: block | ifStatement;
 importStatement: Import String;
 attributeStatement: At Identifier;
 returnStatement: Return expression;
-functionArgumentDeclaration: Identifier Colon type;
-functionReturnType: Arrow type;
 
 expression
     : constant #constantExpression
@@ -38,11 +36,11 @@ addOperators: Plus | Minus;
 compareOperators: Equal | NotEqual | Greater | GreaterOrEqual | Lesser | LesserOrEqual;
 booleanOperators: And | Or | Xor;
 assignmentOperators: Assignment | AdditionAsignment | SubtractionAssignment | MultiplicationAssignment | DivisionAssignment | ModulusAssignment;
-type: ('int' | 'float' | 'string' | 'color' | 'bool' | 'void');
+type: ('number' | 'string' | 'color' | 'bool' | 'void');
 
 block: LeftBrace line* RightBrace;
 
-constant: Integer | Float | String | Boolean | Color | Angle;
+constant: Number | String | Boolean | Color;
 comment: Comment;
 
 /*
@@ -137,8 +135,7 @@ Return: 'return' Whitespace+;
     Lexer rules
 */
 Boolean: True | False;
-Integer: Minus? Digit+;
-Float: Digit+ ([.] Digit+)? 'f'; 
+Number: Digit+ ([.] Digit+)?; 
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
 String: ('"' ~'"'* '"') | ('\'' ~'\''* '\'');
 Color: Hashtag HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit;

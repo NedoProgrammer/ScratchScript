@@ -33,6 +33,13 @@ public class InputBuilder
 		return this;
 	}
 
+	private Dictionary<Type, int> _typeToScratchId = new()
+	{
+		{typeof(decimal), 4},
+		{typeof(string), 10},
+		{typeof(ScratchColor), 9}
+	};
+
 	public InputBuilder WithRawObject(object? obj)
 	{
 		if (obj != null)
@@ -40,7 +47,7 @@ public class InputBuilder
 			_shadowMode = (int) ShadowMode.NoShadow;
 			_objects = new List<object>
 			{
-				ScratchScriptVisitor.GetExpectedInternalType(obj),
+				_typeToScratchId[ScratchScriptVisitor.GetExpectedInternalType(obj)],
 				obj
 			};
 		}

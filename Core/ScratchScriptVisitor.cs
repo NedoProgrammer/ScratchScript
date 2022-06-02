@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Antlr4.Runtime;
@@ -19,10 +20,11 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	private readonly Dictionary<string, Type> _expectedType = new();
 	private bool _isStage;
 	private string _context;
+	private bool _conditional;
 	private CustomBlockBuilder? _currentBuilder;
 	private ScratchCustomBlock? _currentFunction;
 
-	private bool HasFunctionArgument(string name) => _currentBuilder != null && _currentBuilder.Arguments.Keys.Contains(name);
+	private bool HasFunctionArgument(string name) => _currentBuilder != null && _currentBuilder.Arguments.ContainsKey(name);
 
 	public override object? VisitAttributeStatement(ScratchScriptParser.AttributeStatementContext context)
 	{
@@ -121,12 +123,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 
 	public static Type GetExpectedInternalType(object obj)
 	{
-		Type type;
-		if (int.TryParse(obj.ToString(), out _))
-			type = typeof(int);
-		else if (float.TryParse(obj.ToString(), out _))
-			type = typeof(float);
-		else type = obj.GetType();
+		var type = decimal.TryParse(obj.ToString(), out _) ? typeof(decimal) : obj.GetType();
 		return type;
 	}
 
@@ -135,10 +132,10 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		return name switch
 		{
 			"bool" => typeof(bool),
-			"int" => typeof(int),
-			"float" => typeof(float),
+			"number" => typeof(decimal),
 			"color" => typeof(ScratchColor),
-			"string" => typeof(string)
+			"string" => typeof(string),
+			_ => throw new ArgumentOutOfRangeException(nameof(name), name, null)
 		};
 	}
 
@@ -149,6 +146,14 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		return Visit(context.expression());
 	}
 
+	private Dictionary<string, Type> _contextToType = new()
+	{
+		{"Unary", typeof(decimal)},
+		{"BinaryPlus", typeof(decimal)},
+		{"BinaryPlusString", typeof(string)},
+		{"BinaryMultiply", typeof(decimal)},
+		{"BinaryBoolean", typeof(bool)},
+	};
 
 	public override object? VisitIdentifierExpression(ScratchScriptParser.IdentifierExpressionContext context)
 	{
@@ -157,9 +162,21 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		var target = ProjectCompiler.Current.CurrentTarget;
 		if (target.Variables.ContainsKey(identifier))
 			return target.Variables[identifier];
-		if (HasFunctionArgument(identifier))
+		if (_currentBuilder != null && HasFunctionArgument(identifier))
 		{
-			var arg = _currentFunction.ArgumentTypes[identifier];
+			if (_currentBuilder.Arguments[identifier] == typeof(void))
+			{
+				if (_contextToType.ContainsKey(_context))
+					_currentBuilder.Arguments[identifier] = _contextToType[_context];
+				else if (_conditional)
+					_currentBuilder.Arguments[identifier] = typeof(bool);
+				else
+				{
+					DiagnosticReporter.ReportWarning(context.Start, "W19", -1, -1, "", identifier);
+					_currentBuilder.Arguments[identifier] = typeof(string);		
+				}
+			}
+			var arg = _currentBuilder.Arguments[identifier];
 			var block = target.CreateBlock(arg == typeof(bool) ?
 				CustomBlocks.ReporterBoolean(identifier)
 				: CustomBlocks.ReporterStringNumber(identifier));
@@ -175,14 +192,11 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	{
 		Log.Debug("Found constant ({Text})", context.GetText());
 
-		if (context.Integer() is { } i)
-			return int.Parse(i.GetText());
-
-		if (context.Float() is { } f)
-			return float.Parse(f.GetText().Replace("f", ""), CultureInfo.InvariantCulture);
-
 		if (context.String() is { } s)
 			return s.GetText()[1..^1];
+		
+		if (context.Number() is { } d)
+			return decimal.Parse(d.GetText());
 
 		if (context.Boolean() is { } b)
 			return b.GetText() == "true";
@@ -199,6 +213,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		[NotNull] ScratchScriptParser.BinaryBooleanExpressionContext context)
 	{
 		Log.Debug("Found a &&/|| expression");
+		_context = "BinaryBoolean";
 
 		var first = Visit(context.expression(0));
 		var second = Visit(context.expression(1));
@@ -228,6 +243,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	public override object? VisitUnaryAddExpression(ScratchScriptParser.UnaryAddExpressionContext context)
 	{
 		Log.Debug("Found a unary +/- expression");
+		_context = "Unary";
 		var expressionResult = Visit(context.expression());
 		if (expressionResult is null)
 		{
@@ -245,7 +261,8 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		[NotNull] ScratchScriptParser.BinaryCompareExpressionContext context)
 	{
 		Log.Debug("Found a > / < / == / >= / <= expression");
-
+		_context = "BinaryBoolean";
+		
 		var first = Visit(context.expression(0));
 		var second = Visit(context.expression(1));
 		if (first is null || second is null)
@@ -275,6 +292,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	public override object? VisitIfStatement([NotNull] ScratchScriptParser.IfStatementContext context)
 	{
 		Log.Debug("Found an if statement (Expression ID {Id})", context.expression().RuleIndex);
+		_conditional = true;
 		var target = ProjectCompiler.Current.CurrentTarget;
 		var last = target.WrappedTarget.blocks.Last().Key;
 		var expressionResult = Visit(context.expression());
@@ -290,8 +308,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 				expressionResult.GetType().Name);
 			return null;
 		}
-
-		_context = "Conditional";
+		
 		var ifBlock = target.CreateBlock(context.elseIfStatement() == null
 			? Control.If(expressionBlock)
 			: Control.IfElse(expressionBlock));
@@ -382,7 +399,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			}
 		}
 
-		_context = "";
+		_conditional = false;
 		return ifBlock;
 	}
 
@@ -436,6 +453,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		[NotNull] ScratchScriptParser.BinaryMultiplyExpressionContext context)
 	{
 		Log.Debug("Found */(**)% binary expression");
+		_context = "BinaryMultiply";
 		var first = Visit(context.expression(0));
 		var second = Visit(context.expression(1));
 
@@ -445,35 +463,20 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			return null;
 		}
 
-		var firstType = GetExpectedType(first);
-		var secondType = GetExpectedType(second);
-		Type? expectedType = null;
-		if (firstType == secondType)
-			expectedType = firstType;
-		else if ((firstType == typeof(int) && secondType == typeof(float)) ||
-		         (secondType == typeof(int) && firstType == typeof(float)))
-			expectedType = typeof(float);
-
-		if (expectedType == null)
-		{
-			Log.Warning("Could not detect expected result type for a binary expression. Defaulting to int");
-			expectedType = typeof(int);
-		}
-
 		var position = context.multiplyOperators().Start;
 		switch (context.multiplyOperators().GetText())
 		{
 			case "*":
-				return HandleBinaryOperation(position, first, second, Operators.Multiply(first, second), expectedType);
+				return HandleBinaryOperation(position, first, second, Operators.Multiply(first, second), typeof(decimal));
 			case "/":
 				if (first is 0 || second is 0)
 					DiagnosticReporter.ReportWarning(
 						first is 0 ? context.expression(0).Start : context.expression(1).Start, "W1");
-				return HandleBinaryOperation(position, first, second, Operators.Divide(first, second), expectedType);
+				return HandleBinaryOperation(position, first, second, Operators.Divide(first, second), typeof(decimal));
 			case "**":
 				throw new NotImplementedException("Currently not implemented.");
 			case "%":
-				return HandleBinaryOperation(position, first, second, Operators.Modulo(first, second), expectedType);
+				return HandleBinaryOperation(position, first, second, Operators.Modulo(first, second), typeof(decimal));
 		}
 
 		return null;
@@ -483,6 +486,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	public override object? VisitBinaryAddExpression([NotNull] ScratchScriptParser.BinaryAddExpressionContext context)
 	{
 		Log.Debug("Found +- binary expression");
+		_context = "BinaryPlus";
 		var first = Visit(context.expression(0));
 		var second = Visit(context.expression(1));
 
@@ -497,9 +501,9 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		{
 			case "+":
 				//TODO: join strings (which is a separate block)
-				return HandleBinaryOperation(position, first, second, Operators.Add(first, second), typeof(int));
+				return HandleBinaryOperation(position, first, second, Operators.Add(first, second), typeof(decimal));
 			case "-":
-				return HandleBinaryOperation(position, first, second, Operators.Subtract(first, second), typeof(int));
+				return HandleBinaryOperation(position, first, second, Operators.Subtract(first, second), typeof(decimal));
 		}
 
 		return null;
@@ -705,20 +709,21 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			DiagnosticReporter.ReportError(context.FirstParentOfType<ScratchScriptParser.LineContext>().Start, "E16", -1, -1, context.GetText());
 			return null;
 		}
-		
-		var name = context.Identifier().GetText();
+
+		var name = context.Identifier(0).GetText();
 		if (target.Variables.ContainsKey(name))
 		{
-			DiagnosticReporter.ReportError(context.Identifier().Symbol, "E12", -1, -1, "", name);
+			DiagnosticReporter.ReportError(context.Identifier(0).Symbol, "E12", -1, -1, "", name);
 			return null;
 		}
 
-		if (target.Methods.ContainsKey(name))
+		if (target.Functions.ContainsKey(name))
 		{
-			DiagnosticReporter.ReportError(context.Identifier().Symbol, "E13");
+			DiagnosticReporter.ReportError(context.Identifier(0).Symbol, "E13");
 			return null;
 		}
-		
+
+		var last = target.WrappedTarget.blocks.Last(x => !x.Value.shadow).Value;
 		var id = BlockExtensions.RandomId($"Function_{name}_{target.Name}");
 		Log.Debug("Found function declaration ({Name}, {Id})", name, id);
 		
@@ -728,42 +733,32 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		
 		_context = "Function " + id;
 
-		if (context.functionReturnType() != null)
-		{
-			Log.Debug("Found return type ({Type})", context.functionReturnType().type().GetText());
-			_currentBuilder =
-				_currentBuilder.WithReturnType(TypeFromString(context.functionReturnType().type().GetText()));
-		}
-
 
 		Log.Debug("Adding arguments");
-		var arguments = context.functionArgumentDeclaration().ToList();
+		var arguments = context.Identifier().Skip(1).ToList();
+
 		foreach (var argument in arguments)
 		{
 			if (argument.GetText() == name)
 			{
-				DiagnosticReporter.ReportError(argument.Identifier().Symbol, "E14");
+				DiagnosticReporter.ReportError(argument.Symbol, "E14");
 				return null;
 			}
 
 			if (target.Variables.ContainsKey(argument.GetText()))
 			{
-				DiagnosticReporter.ReportError(argument.Identifier().Symbol, "E15");
+				DiagnosticReporter.ReportError(argument.Symbol, "E15");
 				return null;
 			}
 
-			_currentBuilder = _currentBuilder.WithArgument(argument.Identifier().GetText(), TypeFromString(argument.type().GetText()));
+			_currentBuilder = _currentBuilder.WithArgument(argument.GetText(), typeof(void));
 		}
-
-		_currentFunction = _currentBuilder.Build();
-		Log.Debug("Assigning argument shadow blocks to _expectedType");
-		foreach (var pair in _currentFunction.Reporters)
-			_expectedType[pair.Value.Id] = _currentFunction.ArgumentTypes[pair.Key];
 
 		Log.Debug("Parsing function body");
 		var lines = context.block().line().Select(Visit).Where(x => x != null).ToList();
 		if (_currentBuilder.ReturnType == null)
 			_currentBuilder = _currentBuilder.WithReturnType(typeof(void));
+		_currentFunction = _currentBuilder.Build();
 
 		for (var i = 0; i < lines.Count; i++)
 		{
@@ -801,6 +796,13 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			}
 		}
 
+		last.next = null;
+		target.ReplaceBlock(last);
+
+
+		target.Functions[name] = _currentFunction;
+		_currentBuilder = null;
+		_currentFunction = null;
 		return null;
 	}
 
@@ -809,7 +811,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		Log.Debug("Found a return statement");
 		var target = ProjectCompiler.Current.CurrentTarget;
 
-		if (string.IsNullOrEmpty(_context) || !_context.StartsWith("Function") || _currentBuilder == null || _currentFunction == null)
+		if (_currentBuilder == null)
 		{
 			var line = context.FirstParentOfType<ScratchScriptParser.LineContext>();
 			DiagnosticReporter.ReportError(line.Start, "E17", -1, -1, line.GetText());
@@ -843,30 +845,28 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			}
 
 			if (expectedType == typeof(void))
-				DiagnosticReporter.ReportWarning(context.Start, "E18", -1, -1, context.GetText());
+				DiagnosticReporter.ReportWarning(context.Start, "W18", -1, -1, context.GetText());
 
-			_currentFunction.ReturnType = expectedType;
+			_currentBuilder = _currentBuilder.WithReturnType(expectedType);
 		}
 
-		if (_currentBuilder.ReturnType != typeof(void) && string.IsNullOrEmpty(_currentFunction.ReturnVariable))
+		var name = $"{_currentBuilder.Name}_{target.Name}_ReturnValue";
+		if (_currentBuilder.ReturnType != typeof(void) && string.IsNullOrEmpty(_currentBuilder.ReturnVariable))
 		{
-			var name = $"{_currentFunction.Name}_{target.Name}_ReturnValue";
-			target.CreateVariable(name, GetDefaultValue(_currentFunction.ReturnType));
-			_currentFunction.ReturnVariable = name;
-
-			var setValue = target.CreateBlock(Data.SetVariableTo(target.Variables[name], expressionResult));
-			if (expressionResult is Block expressionShadow)
-			{
-				setValue.next = null;
-				expressionShadow.parent = setValue.Id;
-				expressionShadow.next = null;
-				target.ReplaceBlock(setValue);
-				target.ReplaceBlock(expressionShadow);
-			}
-
-			return setValue;
+			target.CreateVariable(name, GetDefaultValue(_currentBuilder.ReturnType!));
+			_currentBuilder.ReturnVariable = name;
 		}
 
-		return null;
+		var setValue = target.CreateBlock(Data.SetVariableTo(target.Variables[name], expressionResult));
+		if (expressionResult is Block expressionShadow)
+		{
+			setValue.next = null;
+			expressionShadow.parent = setValue.Id;
+			expressionShadow.next = null;
+			target.ReplaceBlock(setValue);
+			target.ReplaceBlock(expressionShadow);
+		}
+
+		return setValue;
 	}
 }

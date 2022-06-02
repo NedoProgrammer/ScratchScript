@@ -22,12 +22,14 @@ public class Strings
 		{"E15", "Argument names cannot match already defined variables."},
 		{"E16", "Functions must be defined as top-level statements."},
 		{"E17", "Cannot return in a non-function context."},
-		{"W18", "Return statement cannot determine the return type of function using _expectedType."}
+		{"W18", "Return statement cannot determine the return type of function using _expectedType."},
+		{"W19", "Cannot determine the type of argument \"{0}\"."}
 	};
 
 	public static Dictionary<string, string> Notes = new()
 	{
 		{"E3", "Did you mean to assign a value?"},
-		{"W5", "Defaulting to string."}
+		{"W5", "Defaulting to string."},
+		{"W19", "Defaulting to string."}
 	};
 }
