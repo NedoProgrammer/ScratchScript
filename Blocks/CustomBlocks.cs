@@ -11,7 +11,8 @@ public static class CustomBlocks
 	{
 		return new BlockBuilder()
 			.WithOpcode("procedures_definition")
-			.WithId($"MethodDefinition_{name}")
+			.WithId($"FunctionDefinition_{name}")
+			.IsTopLevel()
 			.WithInput(new InputBuilder()
 				.WithName("custom_block")
 				.WithShadow(prototype, ShadowMode.NoShadow));
@@ -43,12 +44,12 @@ public static class CustomBlocks
 	{
 		var builder = new BlockBuilder()
 			.WithOpcode("procedures_prototype")
-			.WithId($"MethodPrototype_{block.Name}")
+			.WithId($"FunctionPrototype_{block.Name}")
 			.IsShadow()
 			.WithMutation(block.SharedMutation);
 
-		return block.Reporters.Aggregate(builder, (current, pair) => current.WithInput(new InputBuilder().WithName(pair.Key)
-			.WithShadow(pair.Value, ShadowMode.NoShadow)));
+		return block.ArgumentIds.Aggregate(builder, (current, pair) => current.WithInput(new InputBuilder().WithName(pair.Value)
+			.WithShadow(block.Reporters[pair.Key], ShadowMode.NoShadow)));
 	}
 
 	public static Block Call(ScratchCustomBlock block, params object[] parameters)

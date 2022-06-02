@@ -1,4 +1,5 @@
-﻿using ScratchScript.Helpers;
+﻿using ScratchScript.Core;
+using ScratchScript.Helpers;
 using ScratchScript.Types;
 using ScratchScript.Wrapper;
 
@@ -39,7 +40,7 @@ public class InputBuilder
 			_shadowMode = (int) ShadowMode.NoShadow;
 			_objects = new List<object>
 			{
-				TypeHelper.ScratchIdFromValue(obj),
+				ScratchScriptVisitor.GetExpectedInternalType(obj),
 				obj
 			};
 		}

@@ -75,6 +75,11 @@ public class TargetCompiler
 	{
 		if (string.IsNullOrEmpty(block.Id))
 			block = block.WithPurposeId("Unknown");
+		
+		if (block.topLevel)
+			ignoreParent = true;
+		if (block.shadow)
+			block.topLevel = false;
 
 		switch (string.IsNullOrEmpty(PendingComment))
 		{

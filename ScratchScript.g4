@@ -10,13 +10,15 @@ statement: (assignmentStatement | functionCallStatement | variableDeclarationSta
 assignmentStatement: Identifier assignmentOperators expression;
 variableDeclarationStatement: VariableDeclare Identifier Assignment expression;
 functionCallStatement: Identifier LeftParen (expression (Comma expression)*?) RightParen;
-functionDeclarationStatement: FunctionDeclare Identifier LeftParen ((Identifier (Comma Identifier)*?))? RightParen block; 
+functionDeclarationStatement: FunctionDeclare Identifier LeftParen (functionArgumentDeclaration (Comma functionArgumentDeclaration)*?)? RightParen functionReturnType? block; 
 ifStatement: If expression block (Else elseIfStatement)?;
 whileStatement: While expression block;
 elseIfStatement: block | ifStatement;
 importStatement: Import String;
 attributeStatement: At Identifier;
 returnStatement: Return expression;
+functionArgumentDeclaration: Identifier Colon type;
+functionReturnType: Arrow type;
 
 expression
     : constant #constantExpression
@@ -36,6 +38,7 @@ addOperators: Plus | Minus;
 compareOperators: Equal | NotEqual | Greater | GreaterOrEqual | Lesser | LesserOrEqual;
 booleanOperators: And | Or | Xor;
 assignmentOperators: Assignment | AdditionAsignment | SubtractionAssignment | MultiplicationAssignment | DivisionAssignment | ModulusAssignment;
+type: ('int' | 'float' | 'string' | 'color' | 'bool' | 'void');
 
 block: LeftBrace line* RightBrace;
 
@@ -60,6 +63,8 @@ RightBrace: '}';
 Assignment: '=';
 Comma: ',';
 Not: '!';
+Arrow: '->';
+Colon: ':';
 
 SingleLineCommentStart: '//';
 MultiLineCommentStart: '/*';
@@ -126,8 +131,6 @@ False: 'false' Whitespace+;
 VariableDeclare: 'var' Whitespace+;
 Import: 'import' Whitespace+;
 FunctionDeclare: 'function' Whitespace+;
-Degrees: 'deg';
-Radians: 'rad';
 Return: 'return' Whitespace+;
 
 /*
@@ -139,4 +142,3 @@ Float: Digit+ ([.] Digit+)? 'f';
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
 String: ('"' ~'"'* '"') | ('\'' ~'\''* '\'');
 Color: Hashtag HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit;
-Angle: Integer (Degrees | Radians);

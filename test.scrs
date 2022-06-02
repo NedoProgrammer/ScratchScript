@@ -1,5 +1,4 @@
-﻿//should error
-var a = 42;
-function a(x, y)
+﻿function something(one: int, two: int)
 {
+    return (one * one) + (two * two);
 }

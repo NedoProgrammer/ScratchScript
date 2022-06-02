@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Collections.Concurrent;
+using System.Linq.Expressions;
 using ScratchScript.Compiler;
 using ScratchScript.Extensions;
 using ScratchScript.Types;
@@ -9,30 +10,44 @@ namespace ScratchScript.Blocks.Builders;
 public enum ParameterType
 {
 	Boolean,
-	StringOrNumber
+	StringOrNumber,
+	Undefined
 }
 
 public class CustomBlockBuilder
 {
 	private string _name;
-	private Dictionary<string, ParameterType> _arguments = new();
-	private List<Block> _body = new();
+	private string _id;
+	private Type? _returnType;
+	private Dictionary<string, Block> _reporters = new();
+	public Type? ReturnType => _returnType;
+	public Dictionary<string, Type> Arguments => _arguments;
+	private Dictionary<string, Type> _arguments = new();
 
 	public CustomBlockBuilder WithName(string name)
 	{
 		_name = name;
 		return this;
 	}
-
-	public CustomBlockBuilder WithArgument(string name, ParameterType type)
+	
+	public CustomBlockBuilder WithReturnType(Type type)
 	{
-		_arguments[name] = type;
+		_returnType = type;
 		return this;
 	}
 
-	public CustomBlockBuilder WithBody(IEnumerable<Block> blocks)
+	public CustomBlockBuilder WithId(string id)
 	{
-		_body = blocks.ToList();
+		_id = id;
+		return this;
+	}
+
+	public CustomBlockBuilder WithArgument(string name, Type type)
+	{
+		_arguments[name] = type;
+		_reporters[name] = type == typeof(bool)
+			? CustomBlocks.ReporterBoolean(name)
+			: CustomBlocks.ReporterStringNumber(name);
 		return this;
 	}
 
@@ -52,12 +67,13 @@ public class CustomBlockBuilder
 		
 		foreach (var pair in _arguments)
 		{
-			block.ArgumentIds[pair.Key] = BlockExtensions.RandomId($"Argument_{_name}");
-			proccode += pair.Value == ParameterType.Boolean ? "%b " : "%s ";
+			block.ArgumentTypes[pair.Key] = pair.Value;
+			block.ArgumentIds[pair.Key] = BlockExtensions.RandomId($"FunctionArgument_{_name}");
+			proccode += pair.Value == typeof(bool) ? "%b " : "%s ";
 			argumentIds += $"\"{block.ArgumentIds[pair.Key]}\",";
-			argumentDefaults += $"\"{(pair.Value == ParameterType.Boolean ? "false": "")}\",";
+			argumentDefaults += $"\"{(pair.Value == typeof(bool) ? "false": "")}\",";
 			argumentNames += $"\"{pair.Key}\",";
-			block.Reporters[pair.Key] = pair.Value == ParameterType.Boolean
+			block.Reporters[pair.Key] = pair.Value == typeof(bool)
 				? target.CreateBlock(CustomBlocks.ReporterBoolean(pair.Key), ignoreParent:true, ignoreNext:true)
 				: target.CreateBlock(CustomBlocks.ReporterStringNumber(pair.Key), ignoreNext:true, ignoreParent:true);
 		}
@@ -72,9 +88,18 @@ public class CustomBlockBuilder
 		mutation.argumentdefaults = argumentDefaults;
 		mutation.argumentnames = argumentNames;
 
+		block.ReturnType = _returnType;
 		block.SharedMutation = mutation;
-		block.Prototype = CustomBlocks.Prototype(block);
-		block.Definition = CustomBlocks.Definition(block.Name, block.Prototype);
+		block.Prototype = target.CreateBlock(CustomBlocks.Prototype(block), true, true);
+		block.Definition = target.CreateBlock(CustomBlocks.Definition(block.Name, block.Prototype), true, true);
+
+		block.Prototype.parent = block.Definition.Id;
+		target.ReplaceBlock(block.Prototype);
+		foreach (var pair in block.Reporters)
+		{
+			pair.Value.parent = block.Prototype.Id;
+			target.ReplaceBlock(pair.Value);
+		}
 		return block;
 	}
 }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using ScratchScript.Blocks;
@@ -18,6 +19,10 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	private readonly Dictionary<string, Type> _expectedType = new();
 	private bool _isStage;
 	private string _context;
+	private CustomBlockBuilder? _currentBuilder;
+	private ScratchCustomBlock? _currentFunction;
+
+	private bool HasFunctionArgument(string name) => _currentBuilder != null && _currentBuilder.Arguments.Keys.Contains(name);
 
 	public override object? VisitAttributeStatement(ScratchScriptParser.AttributeStatementContext context)
 	{
@@ -92,7 +97,10 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 
 	private object GetDefaultValue(Type type)
 	{
-		var defaultValue = type == typeof(string) ? "" : Activator.CreateInstance(type);
+		object? defaultValue;
+		if (type == typeof(string)) defaultValue = "";
+		else if (type == typeof(bool)) defaultValue = "false";
+		else defaultValue = Activator.CreateInstance(type);
 		if (defaultValue == null)
 			throw new Exception($"Cannot get default value for type {type.Name}.");
 		Log.Debug("Default value for type {Type} is {Value}", type.Name, defaultValue);
@@ -107,14 +115,31 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			Block block => _expectedType[block.Id],
 			_ => null
 		};
-		if (type != null) return type;
+		
+		return type ?? GetExpectedInternalType(obj);
+	}
+
+	public static Type GetExpectedInternalType(object obj)
+	{
+		Type type;
 		if (int.TryParse(obj.ToString(), out _))
 			type = typeof(int);
 		else if (float.TryParse(obj.ToString(), out _))
 			type = typeof(float);
 		else type = obj.GetType();
-
 		return type;
+	}
+
+	public static Type TypeFromString(string name)
+	{
+		return name switch
+		{
+			"bool" => typeof(bool),
+			"int" => typeof(int),
+			"float" => typeof(float),
+			"color" => typeof(ScratchColor),
+			"string" => typeof(string)
+		};
 	}
 
 
@@ -132,6 +157,15 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		var target = ProjectCompiler.Current.CurrentTarget;
 		if (target.Variables.ContainsKey(identifier))
 			return target.Variables[identifier];
+		if (HasFunctionArgument(identifier))
+		{
+			var arg = _currentFunction.ArgumentTypes[identifier];
+			var block = target.CreateBlock(arg == typeof(bool) ?
+				CustomBlocks.ReporterBoolean(identifier)
+				: CustomBlocks.ReporterStringNumber(identifier));
+			_expectedType[block.Id] = arg;
+			return block;
+		}
 
 		DiagnosticReporter.ReportError(context.Start, "E9", -1, -1, "", identifier);
 		return null;
@@ -241,7 +275,6 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	public override object? VisitIfStatement([NotNull] ScratchScriptParser.IfStatementContext context)
 	{
 		Log.Debug("Found an if statement (Expression ID {Id})", context.expression().RuleIndex);
-		_context = "Conditional";
 		var target = ProjectCompiler.Current.CurrentTarget;
 		var last = target.WrappedTarget.blocks.Last().Key;
 		var expressionResult = Visit(context.expression());
@@ -258,6 +291,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			return null;
 		}
 
+		_context = "Conditional";
 		var ifBlock = target.CreateBlock(context.elseIfStatement() == null
 			? Control.If(expressionBlock)
 			: Control.IfElse(expressionBlock));
@@ -486,7 +520,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			target.ReplaceBlock(block);
 			target.ReplaceBlock(firstBlock);
 		}
-		else if (second is Block secondBlock)
+		if (second is Block secondBlock)
 		{
 			secondBlock.parent = block.Id;
 			target.ReplaceBlock(block);
@@ -665,23 +699,173 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	public override object? VisitFunctionDeclarationStatement(ScratchScriptParser.FunctionDeclarationStatementContext context)
 	{
 		var target = ProjectCompiler.Current.CurrentTarget;
-		Log.Debug("Found function declaration");
-		var name = context.Identifier(0).GetText();
+
+		if (!string.IsNullOrEmpty(_context))
+		{
+			DiagnosticReporter.ReportError(context.FirstParentOfType<ScratchScriptParser.LineContext>().Start, "E16", -1, -1, context.GetText());
+			return null;
+		}
+		
+		var name = context.Identifier().GetText();
 		if (target.Variables.ContainsKey(name))
 		{
-			DiagnosticReporter.ReportError(context.Identifier(0).Symbol, "E12", -1, -1, "", name);
+			DiagnosticReporter.ReportError(context.Identifier().Symbol, "E12", -1, -1, "", name);
 			return null;
 		}
 
 		if (target.Methods.ContainsKey(name))
 		{
-			DiagnosticReporter.ReportError(context.Identifier(0).Symbol, "E13");
+			DiagnosticReporter.ReportError(context.Identifier().Symbol, "E13");
+			return null;
+		}
+		
+		var id = BlockExtensions.RandomId($"Function_{name}_{target.Name}");
+		Log.Debug("Found function declaration ({Name}, {Id})", name, id);
+		
+		_currentBuilder = new CustomBlockBuilder()
+			.WithName(name)
+			.WithId(id);
+		
+		_context = "Function " + id;
+
+		if (context.functionReturnType() != null)
+		{
+			Log.Debug("Found return type ({Type})", context.functionReturnType().type().GetText());
+			_currentBuilder =
+				_currentBuilder.WithReturnType(TypeFromString(context.functionReturnType().type().GetText()));
+		}
+
+
+		Log.Debug("Adding arguments");
+		var arguments = context.functionArgumentDeclaration().ToList();
+		foreach (var argument in arguments)
+		{
+			if (argument.GetText() == name)
+			{
+				DiagnosticReporter.ReportError(argument.Identifier().Symbol, "E14");
+				return null;
+			}
+
+			if (target.Variables.ContainsKey(argument.GetText()))
+			{
+				DiagnosticReporter.ReportError(argument.Identifier().Symbol, "E15");
+				return null;
+			}
+
+			_currentBuilder = _currentBuilder.WithArgument(argument.Identifier().GetText(), TypeFromString(argument.type().GetText()));
+		}
+
+		_currentFunction = _currentBuilder.Build();
+		Log.Debug("Assigning argument shadow blocks to _expectedType");
+		foreach (var pair in _currentFunction.Reporters)
+			_expectedType[pair.Value.Id] = _currentFunction.ArgumentTypes[pair.Key];
+
+		Log.Debug("Parsing function body");
+		var lines = context.block().line().Select(Visit).Where(x => x != null).ToList();
+		if (_currentBuilder.ReturnType == null)
+			_currentBuilder = _currentBuilder.WithReturnType(typeof(void));
+
+		for (var i = 0; i < lines.Count; i++)
+		{
+			var line = lines[i];
+			if (line is not Block)
+			{
+				DiagnosticReporter.ReportError(context.Start, "E11", context.block().line(i).Start.Line,
+					context.block().line(i).Start.Column, context.block().line(i).GetText(), "Block",
+					line!.GetType().Name);
+				return null;
+			}
+
+			var block = (line as Block)!;
+			if (i == 0)
+			{
+				_currentFunction.Definition.next = block.Id;
+				block.parent = _currentFunction.Definition.Id;
+				
+				target.ReplaceBlock(_currentFunction.Definition);
+				target.ReplaceBlock(block);
+			}
+			else
+			{
+				var previous = (lines[i - 1] as Block)!;
+				block.parent = previous.Id;
+				previous.next = block.Id;
+				target.ReplaceBlock(block);
+				target.ReplaceBlock(previous);
+			}
+
+			if (i == lines.Count - 1)
+			{
+				block.next = null;
+				target.ReplaceBlock(block);
+			}
+		}
+
+		return null;
+	}
+
+	public override object? VisitReturnStatement(ScratchScriptParser.ReturnStatementContext context)
+	{
+		Log.Debug("Found a return statement");
+		var target = ProjectCompiler.Current.CurrentTarget;
+
+		if (string.IsNullOrEmpty(_context) || !_context.StartsWith("Function") || _currentBuilder == null || _currentFunction == null)
+		{
+			var line = context.FirstParentOfType<ScratchScriptParser.LineContext>();
+			DiagnosticReporter.ReportError(line.Start, "E17", -1, -1, line.GetText());
+			return null;
+		}
+		
+		var expressionResult = Visit(context.expression());
+
+		if (expressionResult is null)
+		{
+			DiagnosticReporter.ReportError(context.Start, "E2", -1, -1, context.GetText());
 			return null;
 		}
 
-		var arguments = context.Identifier().Skip(1).ToList();
-		foreach(var arg in arguments)
-			Log.Information(arg.GetText());
+		if (_currentBuilder.ReturnType == null)
+		{
+			var expectedType = typeof(void);
+			switch (expressionResult)
+			{
+				case Block shadow:
+					if (!_expectedType.ContainsKey(shadow.Id))
+						DiagnosticReporter.ReportWarning(context.Start, "W18", -1, -1, context.GetText());
+					else expectedType = _expectedType[shadow.Id];
+					break;
+				case ScratchVariable variable:
+					expectedType = variable.Type;
+					break;
+				default:
+					expectedType = GetExpectedInternalType(expressionResult);
+					break;
+			}
+
+			if (expectedType == typeof(void))
+				DiagnosticReporter.ReportWarning(context.Start, "E18", -1, -1, context.GetText());
+
+			_currentFunction.ReturnType = expectedType;
+		}
+
+		if (_currentBuilder.ReturnType != typeof(void) && string.IsNullOrEmpty(_currentFunction.ReturnVariable))
+		{
+			var name = $"{_currentFunction.Name}_{target.Name}_ReturnValue";
+			target.CreateVariable(name, GetDefaultValue(_currentFunction.ReturnType));
+			_currentFunction.ReturnVariable = name;
+
+			var setValue = target.CreateBlock(Data.SetVariableTo(target.Variables[name], expressionResult));
+			if (expressionResult is Block expressionShadow)
+			{
+				setValue.next = null;
+				expressionShadow.parent = setValue.Id;
+				expressionShadow.next = null;
+				target.ReplaceBlock(setValue);
+				target.ReplaceBlock(expressionShadow);
+			}
+
+			return setValue;
+		}
 
 		return null;
 	}

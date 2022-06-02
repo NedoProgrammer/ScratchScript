@@ -9,6 +9,7 @@ public class Event
 	{
 		return new BlockBuilder()
 			.IsShadow(false)
+			.IsTopLevel()
 			.WithOpcode("event_whenflagclicked")
 			.WithId("FlagClicked");
 	}

@@ -14,6 +14,7 @@ public class BlockBuilder
 	private int? _x = 0;
 	private int? _y = 0;
 	private Mutation? _mutation;
+	private bool _topLevel;
 
 	public BlockBuilder(Block block)
 	{
@@ -26,10 +27,17 @@ public class BlockBuilder
 		_inputs = block.inputs;
 		_fields = block.fields;
 		_mutation = block.mutation;
+		_topLevel = block.topLevel;
 	}
-
+	
 	public BlockBuilder()
 	{
+	}
+
+	public BlockBuilder IsTopLevel(bool topLevel = true)
+	{
+		_topLevel = topLevel;
+		return this;
 	}
 
 	public BlockBuilder WithId(string id)
@@ -96,7 +104,8 @@ public class BlockBuilder
 			x = _x,
 			y = _y,
 			shadow = _shadow,
-			mutation = _mutation
+			mutation = _mutation,
+			topLevel = _topLevel
 		}.WithPurposeId(_id);
 		return block;
 	}

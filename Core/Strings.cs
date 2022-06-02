@@ -16,8 +16,13 @@ public class Strings
 		{"E9", "Unexpected identifier \"{0}\"."},
 		{"E10", "Syntax error: {0}"},
 		{"E11", "ICE: type mismatch, expected \"{0}\", received \"{1}\"."},
-		{"E12", "Cannot define method with name \"{0}\"; a variable with such name already exists."},
-		{"E13", "Method with name \"{0}\" is already defined."}
+		{"E12", "Cannot define function with name \"{0}\"; a variable with such name already exists."},
+		{"E13", "Function with name \"{0}\" is already defined."},
+		{"E14", "Argument names cannot match the function name."},
+		{"E15", "Argument names cannot match already defined variables."},
+		{"E16", "Functions must be defined as top-level statements."},
+		{"E17", "Cannot return in a non-function context."},
+		{"W18", "Return statement cannot determine the return type of function using _expectedType."}
 	};
 
 	public static Dictionary<string, string> Notes = new()
