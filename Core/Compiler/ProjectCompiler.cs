@@ -2,21 +2,21 @@
 using Antlr4.Runtime;
 using Newtonsoft.Json;
 using RandomUserAgent;
-using ScratchScript.Core;
+using ScratchScript.Core.Visitor;
 using ScratchScript.Helpers;
 using ScratchScript.Wrapper;
 using Serilog;
 using Spectre.Console;
 
-namespace ScratchScript.Compiler;
+namespace ScratchScript.Core.Compiler;
 
 public class ProjectCompiler
 {
 	public const string SupportedVmVersion = "0.2.0-prerelease.20220222132735";
 	public static ProjectCompiler Current;
+	private readonly List<TargetCompiler> _targetCompilers = new();
 
 	private Asset _emptyCostume;
-	private readonly List<TargetCompiler> _targetCompilers = new();
 	public TargetCompiler CurrentTarget;
 
 	public Project Project = new();
@@ -61,9 +61,15 @@ public class ProjectCompiler
 		};
 
 		//Stage
-		_targetCompilers.Add(new TargetCompiler());
-		_targetCompilers[0].Name = "Stage";
-		CurrentTarget = _targetCompilers[0];
+		CreateAndSwitchTargetCompiler(null);
+	}
+
+	public void CreateAndSwitchTargetCompiler(string? path)
+	{
+		var name = Path.GetFileNameWithoutExtension(path) ?? "Stage";
+		_targetCompilers.Add(new TargetCompiler {Name = name});
+		CurrentTarget = _targetCompilers.Last();
+		CurrentTarget.AddEntryPoint();
 	}
 
 	public void SetCurrentTarget(string name)
@@ -106,13 +112,6 @@ public class ProjectCompiler
 		AnsiConsole.MarkupLine("[red]One or more errors have occured, aborting.[/]");
 		Directory.Delete(TempDirectory, true);
 		Environment.Exit(1);
-	}
-
-	public void CreateAndSwitchTargetCompiler(string path)
-	{
-		var name = Path.GetFileNameWithoutExtension(path);
-		_targetCompilers.Add(new TargetCompiler {Name = name});
-		CurrentTarget = _targetCompilers.Last();
 	}
 
 	public void Finish()

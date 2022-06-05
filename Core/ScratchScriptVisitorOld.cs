@@ -1,8 +1,4 @@
-using System.Diagnostics;
-using System.Drawing;
-using System.Globalization;
-using System.Runtime.CompilerServices;
-using Antlr4.Runtime;
+/*using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using ScratchScript.Blocks;
 using ScratchScript.Blocks.Builders;
@@ -11,7 +7,6 @@ using ScratchScript.Extensions;
 using ScratchScript.Types;
 using ScratchScript.Wrapper;
 using Serilog;
-using Serilog.Configuration;
 
 namespace ScratchScript.Core;
 
@@ -226,6 +221,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 				_ => null
 			};
 		DiagnosticReporter.ReportError(context.Start, "E2", -1, -1, context.GetText());
+		return null;
 		return null;
 	}
 
@@ -452,7 +448,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	public override object? VisitBinaryMultiplyExpression(
 		[NotNull] ScratchScriptParser.BinaryMultiplyExpressionContext context)
 	{
-		Log.Debug("Found */(**)% binary expression");
+		Log.Debug("Found #1#(**)% binary expression");
 		_context = "BinaryMultiply";
 		var first = Visit(context.expression(0));
 		var second = Visit(context.expression(1));
@@ -603,7 +599,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 
 	public override object? VisitMultiplyOperators([NotNull] ScratchScriptParser.MultiplyOperatorsContext context)
 	{
-		Log.Debug("Found */(**)% arithmetic operator");
+		Log.Debug("Found #1#(**)% arithmetic operator");
 		return context.GetText();
 	}
 
@@ -630,7 +626,7 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 		var target = ProjectCompiler.Current.CurrentTarget;
 		var last = target.WrappedTarget.blocks.Last(x => !x.Value.shadow).Value;
 		Log.Debug("Found a comment. Attaching to next block after {LastBlockId}", last.Id);
-		var text = context.GetText().EndsWith("*/") ? context.GetText()[2..^2] : context.GetText()[2..];
+		var text = context.GetText().EndsWith("#1#") ? context.GetText()[2..^2] : context.GetText()[2..];
 		var comment = new Comment
 		{
 			minimized = false,
@@ -869,4 +865,5 @@ public class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 
 		return setValue;
 	}
-}
+}*/
+

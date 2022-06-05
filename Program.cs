@@ -1,4 +1,4 @@
-﻿using ScratchScript.Compiler;
+﻿using ScratchScript.Core.Compiler;
 using Serilog;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -65,7 +65,7 @@ internal class BuildCommand : Command<BuildCommand.BuildCommandSettings>
 		compiler.Compile();
 		compiler.Finish();
 
-		if(settings.LogToConsole)
+		if (settings.LogToConsole)
 			AnsiConsole.MarkupLine("[green]Done![/]");
 		return 0;
 	}

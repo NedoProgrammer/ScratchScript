@@ -11,7 +11,7 @@ public class ErrorListener : BaseErrorListener
 		string msg,
 		RecognitionException e)
 	{
-		DiagnosticReporter.ReportError(offendingSymbol, "E10", -1, -1, "", msg);
+		DiagnosticHandler.DefaultHandler(null, offendingSymbol, "E10", false, msg);
 	}
 
 	public override void ReportAmbiguity(Parser recognizer, DFA dfa, int startIndex, int stopIndex, bool exact,

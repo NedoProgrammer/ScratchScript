@@ -1,6 +1,5 @@
-﻿using ScratchScript.Core;
-using ScratchScript.Helpers;
-using ScratchScript.Types;
+﻿using ScratchScript.Core.Types;
+using ScratchScript.Core.Visitor;
 using ScratchScript.Wrapper;
 
 namespace ScratchScript.Blocks.Builders;
@@ -20,50 +19,51 @@ public class InputBuilder
 	private string _shadowId;
 	private int _shadowMode;
 
-	public InputBuilder WithName(string name)
-	{
-		_name = name;
-		return this;
-	}
-
-	public InputBuilder WithShadow(Block shadow, ShadowMode mode = ShadowMode.ObscuredShadow)
-	{
-		_shadowMode = (int) mode;
-		_shadowId = shadow.Id;
-		return this;
-	}
-
-	private Dictionary<Type, int> _typeToScratchId = new()
+	private readonly Dictionary<Type, int> _typeToScratchId = new()
 	{
 		{typeof(decimal), 4},
 		{typeof(string), 10},
 		{typeof(ScratchColor), 9}
 	};
 
-	public InputBuilder WithRawObject(object? obj)
-	{
-		if (obj != null)
-		{
-			_shadowMode = (int) ShadowMode.NoShadow;
-			_objects = new List<object>
-			{
-				_typeToScratchId[ScratchScriptVisitor.GetExpectedInternalType(obj)],
-				obj
-			};
-		}
+	public List<Block> Shadows = new();
 
+	public InputBuilder WithName(string name)
+	{
+		_name = name;
 		return this;
 	}
 
-	public InputBuilder WithVariable(ScratchVariable variable)
+	public InputBuilder WithObject(object? obj, ShadowMode mode = ShadowMode.ObscuredShadow)
 	{
-		_shadowMode = (int) ShadowMode.ObscuredShadow;
-		_objects = new List<object>
+		switch (obj)
 		{
-			12,
-			variable.Name,
-			variable.Id
-		};
+			case Block shadow:
+				_shadowMode = (int) mode;
+				_shadowId = shadow.Id;
+				Shadows.Add(shadow);
+				break;
+			case ScratchVariable variable:
+				_shadowMode = (int) ShadowMode.ObscuredShadow;
+				_objects = new List<object>
+				{
+					12,
+					variable.Name,
+					variable.Id
+				};
+				break;
+			case null:
+				break;
+			default:
+				_shadowMode = (int) ShadowMode.NoShadow;
+				_objects = new List<object>
+				{
+					_typeToScratchId[ScratchScriptVisitor.GetExpectedType(obj)],
+					obj
+				};
+				break;
+		}
+
 		return this;
 	}
 

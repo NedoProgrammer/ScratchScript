@@ -6,13 +6,13 @@ namespace ScratchScript.Blocks;
 public class Control
 {
 	public static Block If(Block condition)
-	{ 
+	{
 		return new BlockBuilder()
 			.WithOpcode("control_if")
 			.WithId("ControlIfStatement")
 			.WithInput(new InputBuilder()
 				.WithName("CONDITION")
-				.WithShadow(condition, ShadowMode.Shadow));
+				.WithObject(condition, ShadowMode.Shadow));
 	}
 
 	public static Block IfElse(Block condition)
@@ -22,6 +22,6 @@ public class Control
 			.WithId("ControlIfElseStatement")
 			.WithInput(new InputBuilder()
 				.WithName("CONDITION")
-				.WithShadow(condition, ShadowMode.Shadow));
+				.WithObject(condition, ShadowMode.Shadow));
 	}
 }

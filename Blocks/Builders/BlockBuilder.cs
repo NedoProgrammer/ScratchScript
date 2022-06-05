@@ -1,3 +1,4 @@
+using ScratchScript.Core.Compiler;
 using ScratchScript.Extensions;
 using ScratchScript.Wrapper;
 
@@ -6,15 +7,14 @@ namespace ScratchScript.Blocks.Builders;
 public class BlockBuilder
 {
 	private readonly Dictionary<string, List<object>> _fields = new();
-	private string _id = "";
 	private readonly Dictionary<string, List<object>> _inputs = new();
+	private Mutation? _mutation;
 	private string _opcode = "";
 	private string? _parent;
 	private bool _shadow;
+	private bool _topLevel;
 	private int? _x = 0;
 	private int? _y = 0;
-	private Mutation? _mutation;
-	private bool _topLevel;
 
 	public BlockBuilder(Block block)
 	{
@@ -22,17 +22,19 @@ public class BlockBuilder
 		_parent = block.parent;
 		_x = block.x;
 		_y = block.y;
-		_id = block.Id;
+		Id = block.Id;
 		_shadow = block.shadow;
 		_inputs = block.inputs;
 		_fields = block.fields;
 		_mutation = block.mutation;
 		_topLevel = block.topLevel;
 	}
-	
+
 	public BlockBuilder()
 	{
 	}
+
+	public string Id { get; private set; } = "";
 
 	public BlockBuilder IsTopLevel(bool topLevel = true)
 	{
@@ -42,11 +44,9 @@ public class BlockBuilder
 
 	public BlockBuilder WithId(string id)
 	{
-		_id = id;
+		Id = BlockExtensions.RandomId(id);
 		return this;
 	}
-	
-	public string Id => _id;
 
 	public BlockBuilder WithMutation(Mutation mutation)
 	{
@@ -58,6 +58,12 @@ public class BlockBuilder
 	{
 		var pair = builder.Build();
 		_inputs[pair.Key] = pair.Value;
+		foreach (var shadow in builder.Shadows)
+		{
+			shadow.parent = Id;
+			ProjectCompiler.Current.CurrentTarget.UpdateBlock(shadow);
+		}
+
 		return this;
 	}
 
@@ -105,8 +111,9 @@ public class BlockBuilder
 			y = _y,
 			shadow = _shadow,
 			mutation = _mutation,
-			topLevel = _topLevel
-		}.WithPurposeId(_id);
+			topLevel = _topLevel,
+			Id = Id
+		};
 		return block;
 	}
 

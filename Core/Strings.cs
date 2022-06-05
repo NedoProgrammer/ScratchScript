@@ -15,7 +15,7 @@ public class Strings
 		{"E8", "Cannot assign a value of type \"{0}\" to a variable of type \"{1}\"."},
 		{"E9", "Unexpected identifier \"{0}\"."},
 		{"E10", "Syntax error: {0}"},
-		{"E11", "ICE: type mismatch, expected \"{0}\", received \"{1}\"."},
+		{"E11", "Type mismatch, expected \"{0}\", received \"{1}\"."},
 		{"E12", "Cannot define function with name \"{0}\"; a variable with such name already exists."},
 		{"E13", "Function with name \"{0}\" is already defined."},
 		{"E14", "Argument names cannot match the function name."},
@@ -23,7 +23,8 @@ public class Strings
 		{"E16", "Functions must be defined as top-level statements."},
 		{"E17", "Cannot return in a non-function context."},
 		{"W18", "Return statement cannot determine the return type of function using _expectedType."},
-		{"W19", "Cannot determine the type of argument \"{0}\"."}
+		{"W19", "Cannot determine the type of argument \"{0}\"."},
+		{"E20", "Unknown attribute \"{0}\"."}
 	};
 
 	public static Dictionary<string, string> Notes = new()

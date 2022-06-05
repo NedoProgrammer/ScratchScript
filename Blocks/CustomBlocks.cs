@@ -1,11 +1,11 @@
 ﻿using ScratchScript.Blocks.Builders;
-using ScratchScript.Compiler;
-using ScratchScript.Types;
+using ScratchScript.Core.Compiler;
+using ScratchScript.Core.Types;
 using ScratchScript.Wrapper;
 
 namespace ScratchScript.Blocks;
 
-public static class CustomBlocks
+public class CustomBlocks
 {
 	public static Block Definition(string name, Block prototype)
 	{
@@ -15,7 +15,7 @@ public static class CustomBlocks
 			.IsTopLevel()
 			.WithInput(new InputBuilder()
 				.WithName("custom_block")
-				.WithShadow(prototype, ShadowMode.NoShadow));
+				.WithObject(prototype, ShadowMode.NoShadow));
 	}
 
 	public static Block ReporterBoolean(string argumentName)
@@ -48,8 +48,9 @@ public static class CustomBlocks
 			.IsShadow()
 			.WithMutation(block.SharedMutation);
 
-		return block.ArgumentIds.Aggregate(builder, (current, pair) => current.WithInput(new InputBuilder().WithName(pair.Value)
-			.WithShadow(block.Reporters[pair.Key], ShadowMode.NoShadow)));
+		return block.ArgumentIds.Aggregate(builder, (current, pair) => current.WithInput(new InputBuilder()
+			.WithName(pair.Value)
+			.WithObject(block.Reporters[pair.Key], ShadowMode.NoShadow)));
 	}
 
 	public static Block Call(ScratchCustomBlock block, params object[] parameters)
@@ -62,21 +63,13 @@ public static class CustomBlocks
 		for (var i = 0; i < parameters.Length; i++)
 		{
 			var input = new InputBuilder()
-				.WithName(block.ArgumentIds.ElementAt(i).Value);
+				.WithName(block.ArgumentIds.ElementAt(i).Value)
+				.WithObject(parameters[i]);
 
-			switch (parameters[i])
+			if (parameters[i] is Block shadow)
 			{
-				case ScratchVariable variable:
-					input = input.WithVariable(variable);
-					break;
-				case Block shadow:
-					input = input.WithShadow(shadow);
-					shadow.parent = builder.Id;
-					ProjectCompiler.Current.CurrentTarget.ReplaceBlock(shadow);
-					break;
-				default:
-					input = input.WithRawObject(parameters[i]);
-					break;
+				shadow.parent = builder.Id;
+				ProjectCompiler.Current.CurrentTarget.UpdateBlock(shadow);
 			}
 
 			builder = builder.WithInput(input);

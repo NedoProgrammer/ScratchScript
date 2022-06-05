@@ -1,4 +1,4 @@
-﻿using ScratchScript.Types;
+﻿using ScratchScript.Core.Types;
 
 namespace ScratchScript.Blocks.Builders;
 
@@ -31,6 +31,6 @@ public class FieldBuilder
 
 	public KeyValuePair<string, List<object>> Build()
 	{
-		return new(_name, _objects!);
+		return new KeyValuePair<string, List<object>>(_name, _objects!);
 	}
 }

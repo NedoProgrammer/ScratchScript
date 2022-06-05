@@ -1,8 +1,6 @@
-﻿using System.Collections.Concurrent;
-using System.Linq.Expressions;
-using ScratchScript.Compiler;
+﻿using ScratchScript.Core.Compiler;
+using ScratchScript.Core.Types;
 using ScratchScript.Extensions;
-using ScratchScript.Types;
 using ScratchScript.Wrapper;
 
 namespace ScratchScript.Blocks.Builders;
@@ -16,26 +14,25 @@ public enum ParameterType
 
 public class CustomBlockBuilder
 {
-	private string _name;
-
-	public string Name => _name;
-
 	private string _id;
-	private Type? _returnType;
+	private readonly Dictionary<string, Block> _reporters = new();
 	public string ReturnVariable;
-	private Dictionary<string, Block> _reporters = new();
-	public Type? ReturnType => _returnType;
+
+	public string Name { get; private set; }
+
+	public Type? ReturnType { get; private set; }
+
 	public Dictionary<string, Type> Arguments { get; } = new();
 
 	public CustomBlockBuilder WithName(string name)
 	{
-		_name = name;
+		Name = name;
 		return this;
 	}
-	
+
 	public CustomBlockBuilder WithReturnType(Type type)
 	{
-		_returnType = type;
+		ReturnType = type;
 		return this;
 	}
 
@@ -62,48 +59,49 @@ public class CustomBlockBuilder
 		{
 			warp = false
 		};
-		
-		var proccode = _name + " ";
+
+		var proccode = Name + " ";
 		var argumentIds = "[";
 		var argumentDefaults = "[";
 		var argumentNames = "[";
-		
+
 		foreach (var pair in Arguments)
 		{
 			block.ArgumentTypes[pair.Key] = pair.Value;
-			block.ArgumentIds[pair.Key] = BlockExtensions.RandomId($"FunctionArgument_{_name}");
+			block.ArgumentIds[pair.Key] = BlockExtensions.RandomId($"FunctionArgument_{Name}");
 			proccode += pair.Value == typeof(bool) ? "%b " : "%s ";
 			argumentIds += $"\"{block.ArgumentIds[pair.Key]}\",";
-			argumentDefaults += $"\"{(pair.Value == typeof(bool) ? "false": "")}\",";
+			argumentDefaults += $"\"{(pair.Value == typeof(bool) ? "false" : "")}\",";
 			argumentNames += $"\"{pair.Key}\",";
-			block.Reporters[pair.Key] = pair.Value == typeof(bool)
-				? target.CreateBlock(CustomBlocks.ReporterBoolean(pair.Key), ignoreParent:true, ignoreNext:true)
-				: target.CreateBlock(CustomBlocks.ReporterStringNumber(pair.Key), ignoreNext:true, ignoreParent:true);
+			//block.Reporters[pair.Key] = pair.Value == typeof(bool)
+			//	? target.AddBlock(CustomBlocks.ReporterBoolean(pair.Key))
+			//	: target.AddBlock(CustomBlocks.ReporterStringNumber(pair.Key));
 		}
 
 		proccode = proccode.Trim();
 		argumentIds = argumentIds.Remove(argumentIds.LastIndexOf(",")) + "]";
 		argumentDefaults = argumentDefaults.Remove(argumentDefaults.LastIndexOf(",")) + "]";
 		argumentNames = argumentNames.Remove(argumentNames.LastIndexOf(",")) + "]";
-		
+
 		mutation.proccode = proccode;
 		mutation.argumentids = argumentIds;
 		mutation.argumentdefaults = argumentDefaults;
 		mutation.argumentnames = argumentNames;
 
 		block.ReturnVariable = ReturnVariable;
-		block.ReturnType = _returnType;
+		block.ReturnType = ReturnType;
 		block.SharedMutation = mutation;
-		block.Prototype = target.CreateBlock(CustomBlocks.Prototype(block), true, true);
-		block.Definition = target.CreateBlock(CustomBlocks.Definition(block.Name, block.Prototype), true, true);
+		//block.Prototype = target.AddBlock(CustomBlocks.Prototype(block));
+		//block.Definition = target.AddBlock(CustomBlocks.Definition(block.Name, block.Prototype));
 
 		block.Prototype.parent = block.Definition.Id;
-		target.ReplaceBlock(block.Prototype);
+		target.UpdateBlock(block.Prototype);
 		foreach (var pair in block.Reporters)
 		{
 			pair.Value.parent = block.Prototype.Id;
-			target.ReplaceBlock(pair.Value);
+			target.UpdateBlock(pair.Value);
 		}
+
 		return block;
 	}
 }

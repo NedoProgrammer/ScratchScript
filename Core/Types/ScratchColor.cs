@@ -1,4 +1,4 @@
-﻿namespace ScratchScript.Types;
+﻿namespace ScratchScript.Core.Types;
 
 public class ScratchColor
 {
