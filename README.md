@@ -4,14 +4,18 @@
 </div>
 
 ## ..why?
+
 Purely for fun! :D
 
 ## ..how?
-ANTLR is used for parsing the language. Several wrappers are created to make it easier to translate code to Scratch's JSON format.
+
+ANTLR is used for parsing the language. Several wrappers are created to make it easier to translate code to Scratch's
+JSON format.
 
 ## ..what does it have?
 
 - Diagnostics!
+
 ```csharp
 Warning: Division by zero is not recommended.
  --> test.scrs:1:13
@@ -26,8 +30,10 @@ Error: Cannot assign a value of type "Single" to a variable of type "Int32".
 
 For more information, try `ScratchScript explain E8`.
 ```
+
 - Imports!
 - Easy syntax!
+
 ```js
 function double(x)
 {
@@ -38,25 +44,34 @@ say(four);
 ```
 
 ## how do i install it?
+
 I am planning to add precompiled executables with Github Actions, but for now you will have to compile it from source.
 
 **You need .NET 7.0 to compile the project.**
 
-The C# compiler for ScratchScript does not depend on your operating system, but you will need `git` and the `dotnet` toolchain.
+The C# compiler for ScratchScript does not depend on your operating system, but you will need `git` and the `dotnet`
+toolchain.
+
 - `git clone https://github.com/NedoProgrammer/ScratchScript`
 - `cd ScratchScript && dotnet build --configuration Release`
 
 The toolchain will be located in `bin/net7.0/Release`.
 
 ## current progress
+
 - [x] Variable declarations
 - [x] Variable assignments
 - [x] Operators
-- - [x] +, -, *, /, %
-- - [ ] ** 
-- - [x] ==, >, <
-- - [ ] >=, <=
-- - [x] &&, ||, <del>^</del>
+-
+    - [x] +, -, *, /, %
+-
+    - [ ] **
+-
+    - [x] ==, >, <
+-
+    - [ ] > =, <=
+-
+    - [x] &&, ||, <del>^</del>
 - [x] If statements
 - [ ] While statements
 - [ ] Function declarations
