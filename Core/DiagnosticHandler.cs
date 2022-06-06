@@ -20,13 +20,15 @@ public static class DiagnosticHandler
 		var name = id.StartsWith("E") ? "Error" : "Warning";
 		var color = id.StartsWith("E") ? "red" : "yellow";
 
-		if (name == "Error")
+		if (name == "Error" && !project.IgnoreErrors)
+		{
 			project.Success = false;
+		}
 
 		AnsiConsole.MarkupLine($"[{color}]{name}[/]: {string.Format(Strings.Messages[id], formatParameters)}");
 		AnsiConsole.WriteLine($" --> {project.FileName}:{line}:{column + 1}");
 		var lineFormatted = $"{line} | ";
-		AnsiConsole.WriteLine($"{lineFormatted}{fileData[line - 1].Trim()}");
+		AnsiConsole.WriteLine($"{lineFormatted}{fileData[line - 1]}");
 		var underline = new string(' ', lineFormatted.Length + column) + new string('~', text.Length);
 		AnsiConsole.MarkupLine($"[{color}]{underline}[/]");
 		if (Strings.Notes.ContainsKey(id))

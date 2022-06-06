@@ -21,6 +21,10 @@ public partial class ScratchScriptVisitor
 				Log.Debug("Switching to stage");
 				Project.SetCurrentTarget("Stage");
 				break;
+			case "ignore_errors":
+				Log.Warning("Usage of ignore_errors is strongly discouraged. Use at your own risk");
+				Project.IgnoreErrors = true;
+				break;
 			default:
 				Message("E20", false, context.Identifier().Symbol, attribute);
 				break;

@@ -106,13 +106,15 @@ public partial class ScratchScriptVisitor
 		EnterContext(context);
 		Log.Debug("Found a binary multiply expression ({Text})", context.GetText());
 
-		var block = Target.AddBlock(context.multiplyOperators().GetText() switch
+		var op = context.multiplyOperators().GetText()!;
+		var block = Target.AddBlock(op switch
 		{
 			"*" => Operators.Multiply(null, null),
 			"/" => Operators.Divide(null, null),
 			"%" => Operators.Modulo(null, null),
 			"**" => throw new Exception("Currently not supported.")
 		});
+		
 
 		Target.EnterAttachmentScope(new AttachInfo
 		{
@@ -124,6 +126,10 @@ public partial class ScratchScriptVisitor
 		if (!TryVisit(context.expression(1), out var second)) return null;
 		Target.TryAssign(first);
 		Target.TryAssign(second);
+		var firstIsZero = first is (decimal) 0;
+		var secondIsZero = second is (decimal) 0;
+		if(op is "/" && (firstIsZero || secondIsZero))
+			Message("W1", false, firstIsZero ? context.expression(0).Start: context.expression(1).Start);
 		AssertType(typeof(decimal), first, second, block);
 		
 		Target.ExitAttachmentScope();

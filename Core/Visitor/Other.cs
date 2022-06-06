@@ -31,6 +31,18 @@ public partial class ScratchScriptVisitor
 		return null;
 	}
 
+	public override object? VisitIdentifierExpression(ScratchScriptParser.IdentifierExpressionContext context)
+	{
+		var identifier = context.GetText();
+		Log.Debug("Found identifier ({Text})", identifier);
+		
+		if(Target.Variables.ContainsKey(identifier) && Target.Variables[identifier].Built)
+			return Target.Variables[identifier];
+		
+		Message("E9", false, null, identifier);
+		return null;
+	}
+
 	public override object? VisitLine(ScratchScriptParser.LineContext context)
 	{
 		if (context.statement() != null)

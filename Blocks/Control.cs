@@ -5,7 +5,7 @@ namespace ScratchScript.Blocks;
 
 public class Control
 {
-	public static Block If(Block condition)
+	public static Block If(Block? condition)
 	{
 		return new BlockBuilder()
 			.WithOpcode("control_if")
@@ -15,7 +15,7 @@ public class Control
 				.WithObject(condition, ShadowMode.Shadow));
 	}
 
-	public static Block IfElse(Block condition)
+	public static Block IfElse(Block? condition)
 	{
 		return new BlockBuilder()
 			.WithOpcode("control_if_else")

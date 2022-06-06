@@ -56,7 +56,9 @@ public partial class ScratchScriptVisitor
 		});
 		if (!TryVisit(context.expression(), out var expression)) return null;
 		Target.TryAssign(expression);
+		
 		Target.Variables[name].Type = GetExpectedType(expression);
+		Target.Variables[name].Built = true;
 
 		Target.ExitAttachmentScope();
 		ExitContext();

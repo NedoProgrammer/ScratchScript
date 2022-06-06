@@ -96,8 +96,7 @@ public class TargetCompiler
 				UpdateBlock(AttachInformation.To);
 				AttachInformation.To = block;
 			}
-
-			if (AttachInformation.InputIndex != AttachInformation.To.inputs.Count)
+			else if (AttachInformation.InputIndex != AttachInformation.To.inputs.Count)
 			{
 				var lastInput =
 					AttachInformation.To.inputs.ElementAt(AttachInformation.InputIndex);

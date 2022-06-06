@@ -21,6 +21,7 @@ public class ProjectCompiler
 
 	public Project Project = new();
 	public bool Success = true;
+	public bool IgnoreErrors = false;
 
 	public ProjectCompiler(string sourcePath, string outputPath)
 	{
