@@ -40,8 +40,9 @@ type: ('number' | 'string' | 'color' | 'bool' | 'void');
 
 block: LeftBrace line* RightBrace;
 
-constant: Number | String | Boolean | Color;
+constant: Number | String | boolean | Color;
 comment: Comment;
+boolean: True | False;
 
 /*
     Lexer fragments
@@ -122,10 +123,10 @@ else {
 
 */
 Else: 'else';
+True: 'true';
+False: 'false';
 
 While: 'while' Whitespace+;
-True: 'true' Whitespace+;
-False: 'false' Whitespace+;
 VariableDeclare: 'var' Whitespace+;
 Import: 'import' Whitespace+;
 FunctionDeclare: 'function' Whitespace+;
@@ -134,7 +135,6 @@ Return: 'return' Whitespace+;
 /*
     Lexer rules
 */
-Boolean: True | False;
 Number: Digit+ ([.] Digit+)?; 
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
 String: ('"' ~'"'* '"') | ('\'' ~'\''* '\'');

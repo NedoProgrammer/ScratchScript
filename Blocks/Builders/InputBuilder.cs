@@ -23,7 +23,8 @@ public class InputBuilder
 	{
 		{typeof(decimal), 4},
 		{typeof(string), 10},
-		{typeof(ScratchColor), 9}
+		{typeof(ScratchColor), 9},
+		{typeof(bool), 10}
 	};
 
 	public List<Block> Shadows = new();
@@ -59,7 +60,7 @@ public class InputBuilder
 				_objects = new List<object>
 				{
 					_typeToScratchId[ScratchScriptVisitor.GetExpectedType(obj)],
-					obj
+					obj.ToString() == null ? obj: obj.ToString()!.ToLower()
 				};
 				break;
 		}

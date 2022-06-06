@@ -26,26 +26,29 @@ public partial class ScratchScriptVisitor
 		       throw new Exception($"The type \"{type.Name}\" is not supported by ScratchScript.");
 	}
 
-	private void AssertType(object obj, Type type)
+	private void AssertType(Type type, params object[] objects)
 	{
-		switch (obj)
+		foreach(var obj in objects)
 		{
-			case ScratchVariable variable:
-				if (variable.Type != type)
-					Message("E11", true, null, type.Name, variable.Type.Name);
-				break;
-			case Block shadow:
-				if (shadow.ExpectedType != null && shadow.ExpectedType != type)
-					Message("E11", true, null, type.Name, shadow.ExpectedType.Name);
-				else if (shadow.ExpectedType == null)
-					shadow.ExpectedType = type;
-				break;
-			case ScratchCustomBlock function:
-				if (function.ReturnType != type)
-					Message("E11", true, null, type.Name, function.ReturnType.Name);
-				else if (function.ReturnType == null)
-					function.ReturnType = type;
-				break;
+			switch (obj)
+			{
+				case ScratchVariable variable:
+					if (variable.Type != type)
+						Message("E11", true, null, variable.Type.Name, type.Name);
+					break;
+				case Block shadow:
+					if (shadow.ExpectedType != null && shadow.ExpectedType != type)
+						Message("E11", true, null, shadow.ExpectedType.Name, type.Name);
+					else if (shadow.ExpectedType == null)
+						shadow.ExpectedType = type;
+					break;
+				case ScratchCustomBlock function:
+					if (function.ReturnType != type)
+						Message("E11", true, null, function.ReturnType.Name, type.Name);
+					else if (function.ReturnType == null)
+						function.ReturnType = type;
+					break;
+			}
 		}
 	}
 }

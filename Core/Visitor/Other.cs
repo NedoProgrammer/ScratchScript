@@ -25,7 +25,7 @@ public partial class ScratchScriptVisitor
 		if (context.Number() is { } n)
 			return decimal.Parse(n.GetText());
 
-		if (context.Boolean() is { } b)
+		if (context.boolean() is { } b)
 			return b.GetText() == "true";
 
 		return null;

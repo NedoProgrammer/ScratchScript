@@ -7,7 +7,7 @@ public partial class ScratchScriptVisitor
 {
 	public override object? VisitAssignmentStatement(ScratchScriptParser.AssignmentStatementContext context)
 	{
-		_currentContext = context;
+		EnterContext(context);
 		var name = context.Identifier().GetText();
 		Log.Debug("Found variable assignment ({Variable}, {Text})", name, context.GetText());
 
@@ -27,16 +27,17 @@ public partial class ScratchScriptVisitor
 
 		if (!TryVisit(context.expression(), out var expression)) return null;
 		Target.TryAssign(expression);
-		AssertType(Target.Variables[name], GetExpectedType(expression));
+		AssertType(GetExpectedType(expression), Target.Variables[name]);
 
 		Target.ExitAttachmentScope();
+		ExitContext();
 		return block;
 	}
 
 	public override object? VisitVariableDeclarationStatement(
 		ScratchScriptParser.VariableDeclarationStatementContext context)
 	{
-		_currentContext = context;
+		EnterContext(context);
 		var name = context.Identifier().GetText();
 		Log.Debug("Found variable declaration ({Name}, {Text})", name, context.GetText());
 
@@ -58,6 +59,7 @@ public partial class ScratchScriptVisitor
 		Target.Variables[name].Type = GetExpectedType(expression);
 
 		Target.ExitAttachmentScope();
+		ExitContext();
 		return block;
 	}
 }

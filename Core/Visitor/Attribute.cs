@@ -6,7 +6,7 @@ public partial class ScratchScriptVisitor
 {
 	public override object? VisitAttributeStatement(ScratchScriptParser.AttributeStatementContext context)
 	{
-		_currentContext = context;
+		EnterContext(context);
 		if (Target.Blocks.Count > 1 || Target.Variables.Count > 0)
 		{
 			Message("E4", true);
@@ -20,10 +20,13 @@ public partial class ScratchScriptVisitor
 			case "stage":
 				Log.Debug("Switching to stage");
 				Project.SetCurrentTarget("Stage");
-				return null;
+				break;
 			default:
 				Message("E20", false, context.Identifier().Symbol, attribute);
-				return null;
+				break;
 		}
+
+		ExitContext();
+		return null;
 	}
 }

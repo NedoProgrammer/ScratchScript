@@ -8,7 +8,7 @@ public partial class ScratchScriptVisitor
 {
 	public override object? VisitBinaryBooleanExpression(ScratchScriptParser.BinaryBooleanExpressionContext context)
 	{
-		_currentContext = context;
+		EnterContext(context);
 		Log.Debug("Found a binary boolean expression ({Text})", context.GetText());
 
 		var block = Target.AddBlock(context.booleanOperators().GetText() switch
@@ -26,17 +26,16 @@ public partial class ScratchScriptVisitor
 		if (!TryVisit(context.expression(0), out var first)) return null;
 		if (!TryVisit(context.expression(1), out var second)) return null;
 
-		AssertType(first, typeof(bool));
-		AssertType(second, typeof(bool));
+		AssertType(typeof(bool), first, second, block);
 
 		Target.ExitAttachmentScope();
-
+		ExitContext();
 		return block;
 	}
 
 	public override object? VisitBinaryCompareExpression(ScratchScriptParser.BinaryCompareExpressionContext context)
 	{
-		_currentContext = context;
+		EnterContext(context);
 		Log.Debug("Found a binary compare expression ({Text})", context.GetText());
 
 		var op = context.compareOperators().GetText();
@@ -98,18 +97,43 @@ public partial class ScratchScriptVisitor
 		}
 
 		Target.ExitAttachmentScope();
-
+		ExitContext();
 		return block;
 	}
 
 	public override object? VisitBinaryMultiplyExpression(ScratchScriptParser.BinaryMultiplyExpressionContext context)
 	{
-		return base.VisitBinaryMultiplyExpression(context);
+		EnterContext(context);
+		Log.Debug("Found a binary multiply expression ({Text})", context.GetText());
+
+		var block = Target.AddBlock(context.multiplyOperators().GetText() switch
+		{
+			"*" => Operators.Multiply(null, null),
+			"/" => Operators.Divide(null, null),
+			"%" => Operators.Modulo(null, null),
+			"**" => throw new Exception("Currently not supported.")
+		});
+
+		Target.EnterAttachmentScope(new AttachInfo
+		{
+			To = block,
+			ChildIsNext = false
+		});
+		
+		if (!TryVisit(context.expression(0), out var first)) return null;
+		if (!TryVisit(context.expression(1), out var second)) return null;
+		Target.TryAssign(first);
+		Target.TryAssign(second);
+		AssertType(typeof(decimal), first, second, block);
+		
+		Target.ExitAttachmentScope();
+		ExitContext();
+		return block;
 	}
 
 	public override object? VisitBinaryAddExpression(ScratchScriptParser.BinaryAddExpressionContext context)
 	{
-		_currentContext = context;
+		EnterContext(context);
 		Log.Debug("Found a binary add expression ({Text})", context.GetText());
 
 		var block = Target.AddBlock(context.addOperators().GetText() switch
@@ -129,12 +153,10 @@ public partial class ScratchScriptVisitor
 		Target.TryAssign(first);
 		Target.TryAssign(second);
 
-		AssertType(first, typeof(decimal));
-		AssertType(second, typeof(decimal));
-		AssertType(block, typeof(decimal));
+		AssertType(typeof(decimal), first, second, block);
 
 		Target.ExitAttachmentScope();
-
+		ExitContext();
 		return block;
 	}
 }
