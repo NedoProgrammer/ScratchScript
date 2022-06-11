@@ -26,8 +26,7 @@ public partial class ScratchScriptVisitor
 		});
 
 		if (!TryVisit(context.expression(), out var expression)) return null;
-		Target.TryAssign(expression);
-		AssertType(GetExpectedType(expression), Target.Variables[name]);
+		AssertType(Target.Variables[name].Type, expression);
 
 		Target.ExitAttachmentScope();
 		ExitContext();
@@ -41,7 +40,7 @@ public partial class ScratchScriptVisitor
 		var name = context.Identifier().GetText();
 		Log.Debug("Found variable declaration ({Name}, {Text})", name, context.GetText());
 
-		if (Target.Variables.ContainsKey(name))
+		if (Target.Variables.ContainsKey(name) && _contextStack.SkipLast(1).Last() is not ScratchScriptParser.IfStatementContext or ScratchScriptParser.ElseIfStatementContext)
 		{
 			Message("E3", false, null, name);
 			return null;
@@ -55,8 +54,7 @@ public partial class ScratchScriptVisitor
 			To = block
 		});
 		if (!TryVisit(context.expression(), out var expression)) return null;
-		Target.TryAssign(expression);
-		
+
 		Target.Variables[name].Type = GetExpectedType(expression);
 		Target.Variables[name].Built = true;
 

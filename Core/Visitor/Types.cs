@@ -26,6 +26,7 @@ public partial class ScratchScriptVisitor
 		       throw new Exception($"The type \"{type.Name}\" is not supported by ScratchScript.");
 	}
 
+
 	private void AssertType(Type type, params object[] objects)
 	{
 		foreach(var obj in objects)
@@ -37,10 +38,15 @@ public partial class ScratchScriptVisitor
 						Message("E11", true, null, variable.Type.Name, type.Name);
 					break;
 				case Block shadow:
-					if (shadow.ExpectedType != null && shadow.ExpectedType != type)
-						Message("E11", true, null, shadow.ExpectedType.Name, type.Name);
-					else if (shadow.ExpectedType == null)
-						shadow.ExpectedType = type;
+					if (!string.IsNullOrEmpty(shadow.FunctionArgument) && HasFunctionArgument(shadow.FunctionArgument) && _currentBuilder.Arguments[shadow.FunctionArgument].Fake)
+						_currentBuilder.UpdateArgumentType(shadow.FunctionArgument, type);
+					else
+					{
+						if (shadow.ExpectedType != null && shadow.ExpectedType != type)
+							Message("E11", true, null, shadow.ExpectedType.Name, type.Name);
+						else if (shadow.ExpectedType == null)
+							shadow.ExpectedType = type;
+					}
 					break;
 				case ScratchCustomBlock function:
 					if (function.ReturnType != type)

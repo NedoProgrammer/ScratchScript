@@ -3,8 +3,9 @@
 public class Block
 {
 	public string? comment;
-	[NonSerialized] public Type? ExpectedType;
 	public Dictionary<string, List<object>> fields = new();
+	[NonSerialized] public string? FunctionArgument;
+	[NonSerialized] public Type? ExpectedType;
 	[NonSerialized] public string Id;
 	public Dictionary<string, List<object>> inputs = new();
 	public Mutation? mutation;

@@ -25,7 +25,7 @@ public partial class ScratchScriptVisitor
 
 		if (!TryVisit(context.expression(0), out var first)) return null;
 		if (!TryVisit(context.expression(1), out var second)) return null;
-
+		
 		AssertType(typeof(bool), first, second, block);
 
 		Target.ExitAttachmentScope();
@@ -87,9 +87,7 @@ public partial class ScratchScriptVisitor
 
 		if (!TryVisit(context.expression(0), out var first)) return null;
 		if (!TryVisit(context.expression(1), out var second)) return null;
-		Target.TryAssign(first);
-		Target.TryAssign(second);
-
+		
 		if (equal != null && complexOperator != null)
 		{
 			equal.inputs = complexOperator.inputs;
@@ -124,8 +122,7 @@ public partial class ScratchScriptVisitor
 		
 		if (!TryVisit(context.expression(0), out var first)) return null;
 		if (!TryVisit(context.expression(1), out var second)) return null;
-		Target.TryAssign(first);
-		Target.TryAssign(second);
+		
 		var firstIsZero = first is (decimal) 0;
 		var secondIsZero = second is (decimal) 0;
 		if(op is "/" && (firstIsZero || secondIsZero))
@@ -156,8 +153,6 @@ public partial class ScratchScriptVisitor
 
 		if (!TryVisit(context.expression(0), out var first)) return null;
 		if (!TryVisit(context.expression(1), out var second)) return null;
-		Target.TryAssign(first);
-		Target.TryAssign(second);
 
 		AssertType(typeof(decimal), first, second, block);
 

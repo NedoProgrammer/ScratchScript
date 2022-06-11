@@ -22,6 +22,7 @@ public partial class ScratchScriptVisitor
 			ChildIsNext = false
 		});
 		if (!TryVisit(context.expression(), out var condition)) return null;
+		
 		AssertType(typeof(bool), condition);
 		
 		Target.ExitAttachmentScope();
@@ -66,16 +67,11 @@ public partial class ScratchScriptVisitor
 		EnterContext(context);
 		Log.Debug("Found an else if statement");
 
+		ExitContext();
 		if (context.ifStatement() != null)
-		{
-			ExitContext();
 			return new RuleContext[] {context.ifStatement()};
-		}
 		if(context.block() != null)
-		{
-			ExitContext();
 			return context.block().line();
-		}
 
 		return Array.Empty<RuleContext>();
 	}
@@ -91,7 +87,7 @@ public partial class ScratchScriptVisitor
 		Target.UpdateBlock(first);
 	}
 
-	private Block? AppendLines(Block attachTo, RuleContext[] lines, string substackName = "SUBSTACK")
+	private Block? AppendLines(Block attachTo, IEnumerable<RuleContext> lines, string substackName = "SUBSTACK")
 	{
 		var blocks = new List<Block>();
 		foreach (var line in lines)

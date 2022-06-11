@@ -1,4 +1,5 @@
-﻿using ScratchScript.Core.Compiler;
+﻿using System.Reflection.Emit;
+using ScratchScript.Core.Compiler;
 using ScratchScript.Core.Types;
 using ScratchScript.Extensions;
 using ScratchScript.Wrapper;
@@ -15,14 +16,14 @@ public enum ParameterType
 public class CustomBlockBuilder
 {
 	private string _id;
-	private readonly Dictionary<string, Block> _reporters = new();
+	public readonly Dictionary<string, Block> Reporters = new();
 	public string ReturnVariable;
 
 	public string Name { get; private set; }
 
 	public Type? ReturnType { get; private set; }
 
-	public Dictionary<string, Type> Arguments { get; } = new();
+	public Dictionary<string, ScratchCustomBlock.ScratchArgument> Arguments { get; } = new();
 
 	public CustomBlockBuilder WithName(string name)
 	{
@@ -42,14 +43,20 @@ public class CustomBlockBuilder
 		return this;
 	}
 
-	public CustomBlockBuilder WithArgument(string name, Type type)
+	public CustomBlockBuilder WithArgument(string name, Type type, bool fake = false)
 	{
-		Arguments[name] = type;
-		_reporters[name] = type == typeof(bool)
+		Arguments[name] = new ScratchCustomBlock.ScratchArgument
+		{
+			Type = type,
+			Fake = fake
+		};
+		Reporters[name] = ProjectCompiler.Current.CurrentTarget.AddBlock(type == typeof(bool)
 			? CustomBlocks.ReporterBoolean(name)
-			: CustomBlocks.ReporterStringNumber(name);
+			: CustomBlocks.ReporterStringNumber(name), true);
 		return this;
 	}
+
+	private ScratchCustomBlock? _block;
 
 	public ScratchCustomBlock Build()
 	{
@@ -67,32 +74,31 @@ public class CustomBlockBuilder
 
 		foreach (var pair in Arguments)
 		{
+			var type = pair.Value.Type;
 			block.ArgumentTypes[pair.Key] = pair.Value;
-			block.ArgumentIds[pair.Key] = BlockExtensions.RandomId($"FunctionArgument_{Name}");
-			proccode += pair.Value == typeof(bool) ? "%b " : "%s ";
+			block.ArgumentIds[pair.Key] = _block == null ? BlockExtensions.RandomId($"FunctionArgument_{Name}"): _block.ArgumentIds[pair.Key];
+			proccode += type == typeof(bool) ? "%b " : "%s ";
 			argumentIds += $"\"{block.ArgumentIds[pair.Key]}\",";
-			argumentDefaults += $"\"{(pair.Value == typeof(bool) ? "false" : "")}\",";
+			argumentDefaults += $"\"{(type == typeof(bool) ? "false" : "")}\",";
 			argumentNames += $"\"{pair.Key}\",";
-			//block.Reporters[pair.Key] = pair.Value == typeof(bool)
-			//	? target.AddBlock(CustomBlocks.ReporterBoolean(pair.Key))
-			//	: target.AddBlock(CustomBlocks.ReporterStringNumber(pair.Key));
 		}
 
 		proccode = proccode.Trim();
-		argumentIds = argumentIds.Remove(argumentIds.LastIndexOf(",")) + "]";
-		argumentDefaults = argumentDefaults.Remove(argumentDefaults.LastIndexOf(",")) + "]";
-		argumentNames = argumentNames.Remove(argumentNames.LastIndexOf(",")) + "]";
+		FinishArrayString(ref argumentIds);
+		FinishArrayString(ref argumentNames);
+		FinishArrayString(ref argumentDefaults);
 
 		mutation.proccode = proccode;
 		mutation.argumentids = argumentIds;
 		mutation.argumentdefaults = argumentDefaults;
 		mutation.argumentnames = argumentNames;
 
+		block.Reporters = Reporters;
 		block.ReturnVariable = ReturnVariable;
 		block.ReturnType = ReturnType;
 		block.SharedMutation = mutation;
-		//block.Prototype = target.AddBlock(CustomBlocks.Prototype(block));
-		//block.Definition = target.AddBlock(CustomBlocks.Definition(block.Name, block.Prototype));
+		block.Prototype = target.AddBlock(CustomBlocks.Prototype(block), true);
+		block.Definition = target.AddBlock(CustomBlocks.Definition(block.Name, block.Prototype));
 
 		block.Prototype.parent = block.Definition.Id;
 		target.UpdateBlock(block.Prototype);
@@ -103,5 +109,31 @@ public class CustomBlockBuilder
 		}
 
 		return block;
+	}
+
+	private static void FinishArrayString(ref string array)
+	{
+		var index = array.LastIndexOf(",", StringComparison.Ordinal);
+		if (index != -1)
+			array = array.Remove(index);
+		array += ']';
+	}
+
+	public void UpdateArgumentType(string name, Type type)
+	{
+		var project = ProjectCompiler.Current;
+		Arguments[name] = new ScratchCustomBlock.ScratchArgument
+		{
+			Fake = false,
+			Type = type
+		};
+		Reporters[name].ExpectedType = type;
+		if (type == typeof(bool))
+		{
+			Reporters[name].opcode = "argument_reporter_boolean";
+			project.AddPostReplace(Reporters[name].Id, BlockExtensions.RandomId("ArgumentBoolean"));
+		}
+
+		project.CurrentTarget.UpdateBlock(Reporters[name]);
 	}
 }

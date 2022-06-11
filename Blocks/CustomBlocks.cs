@@ -20,24 +20,30 @@ public class CustomBlocks
 
 	public static Block ReporterBoolean(string argumentName)
 	{
-		return new BlockBuilder()
+		var block = new BlockBuilder()
 			.WithOpcode("argument_reporter_boolean")
 			.WithId("ArgumentBoolean")
 			.WithField(new FieldBuilder()
 				.WithName("VALUE")
 				.WithObjects(argumentName, null))
-			.IsShadow();
+			.IsShadow()
+			.Build();
+		block.FunctionArgument = argumentName;
+		return block;
 	}
 
 	public static Block ReporterStringNumber(string argumentName)
 	{
-		return new BlockBuilder()
+		var block = new BlockBuilder()
 			.WithOpcode("argument_reporter_string_number")
 			.WithId("ArgumentStringNumber")
 			.WithField(new FieldBuilder()
 				.WithName("VALUE")
 				.WithObjects(argumentName, null))
-			.IsShadow();
+			.IsShadow()
+			.Build();
+		block.FunctionArgument = argumentName;
+		return block;
 	}
 
 	public static Block Prototype(ScratchCustomBlock block)

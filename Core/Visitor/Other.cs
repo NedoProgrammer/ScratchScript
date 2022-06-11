@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using ScratchScript.Blocks;
+using Serilog;
 
 namespace ScratchScript.Core.Visitor;
 
@@ -38,6 +39,8 @@ public partial class ScratchScriptVisitor
 		
 		if(Target.Variables.ContainsKey(identifier) && Target.Variables[identifier].Built)
 			return Target.Variables[identifier];
+		if (HasFunctionArgument(identifier))
+			return _currentBuilder.Reporters[identifier];
 		
 		Message("E9", false, null, identifier);
 		return null;

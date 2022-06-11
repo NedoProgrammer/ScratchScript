@@ -1,5 +1,7 @@
 ﻿using System.IO.Compression;
+using System.Text;
 using Antlr4.Runtime;
+using Microsoft.VisualBasic.CompilerServices;
 using Newtonsoft.Json;
 using RandomUserAgent;
 using ScratchScript.Core.Visitor;
@@ -15,6 +17,9 @@ public class ProjectCompiler
 	public const string SupportedVmVersion = "0.2.0-prerelease.20220222132735";
 	public static ProjectCompiler Current;
 	private readonly List<TargetCompiler> _targetCompilers = new();
+	private Dictionary<string, string> _replace = new();
+
+	public void AddPostReplace(string from, string with) => _replace[from] = with;
 
 	private Asset _emptyCostume;
 	public TargetCompiler CurrentTarget;
@@ -22,6 +27,7 @@ public class ProjectCompiler
 	public Project Project = new();
 	public bool Success = true;
 	public bool IgnoreErrors = false;
+	
 
 	public ProjectCompiler(string sourcePath, string outputPath)
 	{
@@ -120,17 +126,16 @@ public class ProjectCompiler
 		Log.Information("Finishing..");
 
 		Log.Debug("Serializing project");
-		File.WriteAllText(Path.Join(TempDirectory, "project.json"), JsonConvert.SerializeObject(Project,
+		var json = JsonConvert.SerializeObject(Project,
 			Formatting.Indented, new JsonSerializerSettings
 			{
 				NullValueHandling = NullValueHandling.Ignore
-			}));
+			});
+		foreach (var (key, value) in _replace)
+			json = json.Replace(key, value);
+		File.WriteAllText(Path.Join(TempDirectory, "project.json"), json);
 
-		File.WriteAllText("testing.json", JsonConvert.SerializeObject(Project, Formatting.Indented,
-			new JsonSerializerSettings
-			{
-				NullValueHandling = NullValueHandling.Ignore
-			}));
+		File.WriteAllText("testing.json", json);
 
 		Log.Debug("Zipping project files");
 		ZipFile.CreateFromDirectory(TempDirectory, OutputPath);

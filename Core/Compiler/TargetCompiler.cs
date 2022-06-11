@@ -1,7 +1,10 @@
-﻿using ScratchScript.Blocks;
+﻿using System.Linq.Expressions;
+using ScratchScript.Blocks;
 using ScratchScript.Blocks.Builders;
 using ScratchScript.Core.Types;
+using ScratchScript.Extensions;
 using ScratchScript.Wrapper;
+using Serilog;
 
 namespace ScratchScript.Core.Compiler;
 
@@ -9,7 +12,7 @@ public class TargetCompiler
 {
 	private readonly List<AttachInfo> AttachInformationList = new();
 	public Dictionary<string, ScratchCustomBlock> Functions = new();
-	public Comment? PendingComment;
+	public List<string> PendingComments = new();
 	public Dictionary<string, ScratchVariable> Variables = new();
 	public Target WrappedTarget = new();
 
@@ -80,45 +83,66 @@ public class TargetCompiler
 		};
 	}
 
-	public Block AddBlock(Block block)
+	public Block AddBlock(Block block, bool forceIgnoreParent = false)
 	{
-		if (AttachInformation == null)
+		if (AttachInformation == null || block.topLevel || AttachInformation.To == null)
 		{
 			block.parent = null;
 			block.topLevel = true;
 		}
 		else
 		{
-			block.parent = AttachInformation.To.Id;
-			if (AttachInformation.ChildIsNext)
+			if (!forceIgnoreParent)
 			{
-				AttachInformation.To.next = block.Id;
-				UpdateBlock(AttachInformation.To);
-				AttachInformation.To = block;
-			}
-			else if (AttachInformation.InputIndex != AttachInformation.To.inputs.Count)
-			{
-				var lastInput =
-					AttachInformation.To.inputs.ElementAt(AttachInformation.InputIndex);
-				AttachInformation.To = new BlockBuilder(AttachInformation.To)
-					.WithInput(new InputBuilder()
-						.WithName(lastInput.Key)
-						.WithObject(block));
-				AttachInformation.InputIndex++;
+				block.parent = AttachInformation.To.Id;
+				if (AttachInformation.ChildIsNext)
+				{
+					AttachInformation.To.next = block.Id;
+					UpdateBlock(AttachInformation.To);
+					AttachInformation.To = block;
+				}
+				else if (AttachInformation.InputIndex != AttachInformation.To.inputs.Count)
+				{
+					var lastInput =
+						AttachInformation.To.inputs.ElementAt(AttachInformation.InputIndex);
+					AttachInformation.To = new BlockBuilder(AttachInformation.To)
+						.WithInput(new InputBuilder()
+							.WithName(lastInput.Key)
+							.WithObject(block));
+					AttachInformation.InputIndex++;
+				}
 			}
 
 			UpdateBlock(AttachInformation.To);
+		}
+
+		if (!block.shadow && PendingComments.Count != 0)
+		{
+			var comment = PendingComments.First();
+			block.comment = comment;
+
+			WrappedTarget.comments[comment].blockId = block.Id;
+			UpdateBlock(block);
+			PendingComments.RemoveAt(0);
+			
+			Log.Debug("Attached comment {Id} to block {BlockId}", comment, block.Id);
 		}
 
 		UpdateBlock(block);
 		return block;
 	}
 
+	public void AddComment(Comment comment)
+	{
+		var id = BlockExtensions.RandomId("Comment");
+		WrappedTarget.comments[id] = comment;
+		PendingComments.Add(id);
+	}
+
 	public void TryAssign(object value)
 	{
 		if (AttachInformation == null) return;
 		if (AttachInformation.InputIndex == AttachInformation.To.inputs.Count) return;
-		if (value is Block) return;
 
 		var lastInput =
 			AttachInformation.To.inputs.ElementAt(AttachInformation.InputIndex);

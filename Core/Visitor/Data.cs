@@ -1,6 +1,8 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using ScratchScript.Blocks.Builders;
 using ScratchScript.Core.Compiler;
+using ScratchScript.Core.Types;
 
 namespace ScratchScript.Core.Visitor;
 
@@ -14,6 +16,8 @@ public partial class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 	private TargetCompiler Target => Project.CurrentTarget;
 	private ProjectCompiler Project => ProjectCompiler.Current;
 
+	private CustomBlockBuilder _currentBuilder;
+
 	private void Message(string id, bool highlightLine = false, IToken? customToken = null,
 		params object[] formatObjects)
 	{
@@ -21,17 +25,21 @@ public partial class ScratchScriptVisitor : ScratchScriptBaseVisitor<object?>
 			formatObjects);
 	}
 
-	private bool TryVisit(IParseTree tree, out object result)
+	private bool TryVisit(IParseTree tree, out object result, bool ignoreNull = false)
 	{
+		result = null!;
+		
 		var visitResult = Visit(tree);
-		if (visitResult is null)
+		if (visitResult is null && !ignoreNull)
 		{
 			Message("E2", true);
-			result = null!;
 			return false;
 		}
 
-		result = visitResult;
+		if (ignoreNull) return true;
+
+		result = visitResult!;
+		Target.TryAssign(visitResult!);
 		return true;
 	}
 }

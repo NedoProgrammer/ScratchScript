@@ -6,5 +6,5 @@ public class AttachInfo
 {
 	public bool ChildIsNext = false;
 	public int InputIndex = 0;
-	public Block To;
+	public Block? To;
 }
